@@ -15,9 +15,9 @@
 package cmd
 
 import (
-	"fmt"
     "os"
 
+    log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -42,17 +42,22 @@ Examples:
 `,
 	Run: func(cmd *cobra.Command, args []string) {
         // Attempt to parse each of the inputs provided
+        if len(args) < 1 {
+            log.Fatal("No inputs specified. Use '-' for stdin.")
+            os.Exit(1)
+        }
+
         for _, inputString := range args {
             switch inputString {
             case "-":
-                fmt.Println("Reading from stdin...")
+                log.Info("Reading from stdin...")
 
             default:
                 // Unknown input type
-                fmt.Println("Invalid: " + inputString)
+                log.Fatal("Input type not supported: " + inputString)
+
                 os.Exit(1)
             }
-
         }
 	},
 }

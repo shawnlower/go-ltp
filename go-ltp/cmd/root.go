@@ -20,6 +20,7 @@ import (
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
+    log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -50,6 +51,10 @@ func Execute() {
 }
 
 func init() {
+    // Setup logging
+    log.SetOutput(os.Stdout)
+    log.SetLevel(log.InfoLevel)
+
 	cobra.OnInitialize(initConfig)
 
 	// Here you will define your flags and configuration settings.
