@@ -15,11 +15,22 @@
 package cmd
 
 import (
+    "fmt"
     "os"
+
+    "github.com/shawnlower/go-ltp/go-ltp/stdinReader"
 
     log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
+
+type inputHandler func(chan bool)
+
+type job struct {
+    name    string
+    h       inputHandler
+    done    chan bool
+}
 
 // addCmd represents the add command
 var addCmd = &cobra.Command{
@@ -41,16 +52,24 @@ Examples:
     go-ltp add ~/Pictures/Jamaica_Bay.png
 `,
 	Run: func(cmd *cobra.Command, args []string) {
+
+        var jobs []job
+
         // Attempt to parse each of the inputs provided
         if len(args) < 1 {
             log.Fatal("No inputs specified. Use '-' for stdin.")
             os.Exit(1)
         }
 
+        // Queue a job to handle each input specified as an argument
         for _, inputString := range args {
             switch inputString {
             case "-":
                 log.Info("Reading from stdin...")
+                var c = make(chan bool, 1)
+                jobs = append(jobs, job{name: "-",
+                                        h: stdinReader.Read,
+                                        done: c})
 
             default:
                 // Unknown input type
@@ -58,6 +77,21 @@ Examples:
 
                 os.Exit(1)
             }
+        }
+
+        // Launch each job by calling its associated handler function
+        for _, job := range(jobs) {
+            log.Info(fmt.Sprintf("Launching job: %#v", job))
+
+            // Use the 'done' channel to signify job completion
+            go job.h(job.done)
+        }
+
+        // Wait for each job to complete
+        for _, job := range(jobs) {
+            log.Info(fmt.Sprintf("Waiting for job: %#v", job))
+
+            <-job.done
         }
 	},
 }
