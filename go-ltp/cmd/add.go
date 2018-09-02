@@ -81,17 +81,28 @@ Examples:
 
         // Launch each job by calling its associated handler function
         for _, job := range(jobs) {
-            log.Info(fmt.Sprintf("Launching job: %#v", job))
+            log.Debug(fmt.Sprintf("Launching job: %#v", job))
 
             // Use the 'done' channel to signify job completion
             go job.h(job.done)
         }
 
-        // Wait for each job to complete
-        for _, job := range(jobs) {
-            log.Info(fmt.Sprintf("Waiting for job: %#v", job))
+        // Wait for the jobs to complete using a non-blocking loop
+        // over all jobs
+        cnt := len(jobs) // Count of remaining jobs
+        for {
+            if cnt < 1 { break }
 
-            <-job.done
+            for i := 0; i < len(jobs); i++ {
+                select {
+                case <- jobs[i].done:
+                    log.Debug(fmt.Sprintf("Job %d finished.", i))
+                    cnt--
+                default:
+                    continue
+                }
+            }
+
         }
 	},
 }
