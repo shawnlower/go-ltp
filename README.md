@@ -56,10 +56,8 @@ Your Cobra application is ready at
 /home/shawn/projects/go-ltp/src/github.com/shawnlower/go-ltp/go-ltp
 ```
 
-go run main.go
-
-cobra help add
-cobra add subcmdthing
+## Digest and io.Reader jobs based on:
+https://github.com/docker/distribution/blob/749f6afb4572201e3c37325d0ffedb6f32be8950/cmd/digest/main.go
 
 viper for configs
 

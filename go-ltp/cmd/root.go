@@ -25,20 +25,22 @@ import (
 )
 
 var cfgFile string
+var debug bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "go-ltp",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+	Short: "golang cli for LTP",
+	Long: `Utility for persisting data to a remote store.
+    LTP store persists object data and semantic meta-data and provides
+    the ability to arbitrarily link any objects within the store`,
+    PersistentPreRun: func(cmd *cobra.Command, args []string) {
+        // TODO: this can't be the easiest way
+        if cmd.Flag("debug").Value.String() == "true" {
+            log.SetLevel(log.DebugLevel)
+        }
+        log.Debug("Log level set to debug")
+    },
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -61,10 +63,15 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.go-ltp.yaml)")
+	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug logging")
+    viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
+}
+
+
+func testFunc(debug bool) {
+    log.Info(fmt.Sprintf("Log level set to %#v", debug))
 }
 
 // initConfig reads in config file and ENV variables if set.
