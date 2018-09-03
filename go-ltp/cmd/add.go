@@ -68,7 +68,7 @@ Examples:
                 log.Info("Reading from stdin...")
                 var c = make(chan bool, 1)
                 jobs = append(jobs, job{name: "-",
-                                        h: stdinReader.Read,
+                                        h: stdinReader.Handle,
                                         done: c})
 
             default:

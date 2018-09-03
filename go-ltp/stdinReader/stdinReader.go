@@ -15,29 +15,81 @@
 package stdinReader
 
 import (
+    "crypto/sha256"
     "fmt"
     "io"
     "os"
+    "sync"
 
     log "github.com/sirupsen/logrus"
 )
 
-func Read(done chan bool) {
+const BUFSIZE = 1024
+
+// Must be >= SHA block size (64 for sha256)
+// const BUFSIZE = 64
+
+func genHash(r io.Reader, wg *sync.WaitGroup) {
+    h   := sha256.New()
+    if _, err := io.Copy(h, r); err != nil {
+        log.Error(fmt.Sprintf("Unable to generate hash: %#U\n", err))
+    }
+    log.Debug("Generated hash: ", h.Sum(nil))
+    wg.Done()
+}
+
+func Handle(done chan bool) {
+
+    // Use a waitgroup to synchronize procs
+    var wg sync.WaitGroup
+
+    r, w := io.Pipe()
+
+    wg.Add(1)
+    go genHash(r, &wg)
+
     log.Info("Reading...")
     fd := os.Stdin
-    buf := make([]byte, 1024)
+
+    out := make(chan []byte, BUFSIZE)
+    defer close(out)
+
     cnt := 0
+    buf := make([]byte, BUFSIZE)
     for {
         n, err := fd.Read(buf)
+        w.Write(buf)
+
         cnt += n
+        if err != nil && err != io.EOF {
+            log.Error(fmt.Sprintf("Error reading file. Error: %#v", err))
+        }
+
+        // log.Debug("Writing: ", string(buf))
+        out <- buf
+
         if err == io.EOF {
             break
         }
-        if err != nil {
-            log.Error(fmt.Sprintf("Error reading file. Error: %#v", err))
-        }
     }
     log.Info(fmt.Sprintf("Read %d bytes.", cnt))
+    testFunc(out)
 
+    w.Close()
+    wg.Wait()
     done<- true
+}
+
+func testFunc(in chan []byte) {
+    for done := false; done; {
+        select {
+        case data := <- in:
+            if len(data) == 0 {
+                done = true
+            }
+            fmt.Printf("Received %d bytes.", len(data))
+        default:
+            continue
+        }
+    }
 }
