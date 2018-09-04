@@ -45,14 +45,28 @@ func Handle(done chan bool) {
 
     r, w := io.Pipe()
 
+    // Increment waitgroup and spawn a goroutine to calculate the hash
+    // of the data written into the pipe
     wg.Add(1)
     go genHash(r, &wg)
 
-    log.Info("Reading...")
     fd := os.Stdin
 
-    out := make(chan []byte, BUFSIZE)
-    defer close(out)
+    // 'out' channel receives all data that we write to the 'w' pipe above
+    out := make(chan byte, BUFSIZE)
+
+    wg.Add(1)
+    go func() {
+        c1 := testFunc1(out)
+        c2 := testFunc2(c1)
+        cnt := 0
+        for c := range c2 {
+            _ = c
+            cnt++
+        }
+        log.Info(fmt.Sprintf("Pipeline finished with %d bytes.", cnt))
+        wg.Done()
+    }()
 
     cnt := 0
     buf := make([]byte, BUFSIZE)
@@ -65,31 +79,83 @@ func Handle(done chan bool) {
             log.Error(fmt.Sprintf("Error reading file. Error: %#v", err))
         }
 
-        // log.Debug("Writing: ", string(buf))
-        out <- buf
+        // log.Debug(fmt.Sprintf("Writing %d bytes.", n))
+        for i := 0; i < n; i++ {
+            out <- buf[i]
+        }
 
         if err == io.EOF {
             break
         }
     }
-    log.Info(fmt.Sprintf("Read %d bytes.", cnt))
-    testFunc(out)
+    log.Debug(fmt.Sprintf("Wrote %d bytes.", cnt))
+    close(out)
 
     w.Close()
     wg.Wait()
     done<- true
 }
 
-func testFunc(in chan []byte) {
-    for done := false; done; {
+func testFunc1(in <-chan byte) <-chan byte{
+
+    log.Debug(fmt.Sprintf("testFunc1 ready.\n"))
+
+    out := make(chan byte)
+
+    go func() {
+
+        cnt := 0;
+        for n := range in {
+            out <-n
+            cnt++
+        }
+        close(out)
+        log.Debug(fmt.Sprintf("testFunc1 read %d bytes.", cnt))
+    }()
+    return out
+}
+
+func testFunc2(in <-chan byte) <-chan byte{
+    log.Debug(fmt.Sprintf("testFunc2 ready.\n"))
+
+    out := make(chan byte)
+
+    go func() {
+
+        cnt := 0;
+        for n := range in {
+            out <-n
+            cnt++
+        }
+        close(out)
+        log.Debug(fmt.Sprintf("testFunc2 read %d bytes.", cnt))
+    }()
+    return out
+}
+
+/*
+func testFunc2(in <-chan byte) <-chan byte{
+
+    out := make(chan byte)
+
+    cnt := 0;
+    for {
+        fmt.Printf("2")
+        var data byte
+        var more bool
         select {
-        case data := <- in:
-            if len(data) == 0 {
-                done = true
-            }
-            fmt.Printf("Received %d bytes.", len(data))
+        case data, more = <-in:
+            out <-data
         default:
             continue
         }
+        if more == false {
+            break
+        }
+        cnt++
     }
+    log.Debug(fmt.Sprintf("testFunc2 read %d bytes.", cnt))
+    return out
 }
+*/
+
