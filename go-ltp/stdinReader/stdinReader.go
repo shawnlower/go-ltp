@@ -50,6 +50,9 @@ func Handle(done chan bool) {
     wg.Add(1)
     go genHash(r, &wg)
 
+    wg.Add(1)
+    go anotherFunc(r, &wg)
+
     fd := os.Stdin
 
     // 'out' channel receives all data that we write to the 'w' pipe above
@@ -133,29 +136,24 @@ func testFunc2(in <-chan byte) <-chan byte{
     return out
 }
 
-/*
-func testFunc2(in <-chan byte) <-chan byte{
 
-    out := make(chan byte)
+func anotherFunc(r io.Reader, wg *sync.WaitGroup) {
+    log.Debug(fmt.Sprintf("anotherFunc ready.\n"))
 
     cnt := 0;
+    buf := make([]byte, BUFSIZE)
+
     for {
-        fmt.Printf("2")
-        var data byte
-        var more bool
-        select {
-        case data, more = <-in:
-            out <-data
-        default:
-            continue
+        n, err := r.Read(buf)
+        if err != nil && err != io.EOF {
+            log.Error(fmt.Sprintf("Error reading file. Error: %#v", err))
         }
-        if more == false {
+
+        if (err == io.EOF) {
             break
         }
-        cnt++
+        cnt += n
     }
-    log.Debug(fmt.Sprintf("testFunc2 read %d bytes.", cnt))
-    return out
+    log.Debug(fmt.Sprintf("anotherFunc read %d bytes.", cnt))
+    wg.Done()
 }
-*/
-

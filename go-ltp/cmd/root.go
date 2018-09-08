@@ -69,11 +69,6 @@ func init() {
 
 }
 
-
-func testFunc(debug bool) {
-    log.Info(fmt.Sprintf("Log level set to %#v", debug))
-}
-
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	if cfgFile != "" {
