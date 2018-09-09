@@ -142,3 +142,25 @@ func FanoutParsers(reader io.Reader, parsers []Parser) (err error) {
     wg.Wait()
     return nil
 }
+
+func SerialParsers(reader io.Reader, parsers []Parser) (err error) {
+
+    var r1, r2 models.Reader
+
+    log.Debug(fmt.Sprintf("Received %d parsers (%s)", len(parsers), parsers))
+    log.Debug(fmt.Sprintf("Connecting input %s to first pipe", reader))
+    r1, err = parsers[0].Parse(reader)
+
+    for i := 1; i < len(parsers); i++ {
+        if (r1 == nil) {
+            panic("Received nil reader from parser list. Cannot continue.")
+        }
+        r2, err = parsers[i].Parse(r1)
+        if (err != nil) {
+            log.Error("Failed to parse pipe", i)
+        }
+        r1 = r2
+    }
+    log.Debug(fmt.Sprintf("Connecting input %s to last pipe", reader))
+    return nil
+}

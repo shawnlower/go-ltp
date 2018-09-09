@@ -6,6 +6,8 @@ import (
     "bytes"
 	"fmt"
 	"io"
+	// "os"
+    "time"
 
     "compress/gzip"
     log "github.com/sirupsen/logrus"
@@ -19,10 +21,18 @@ type GzipParser struct{
 
 func (p *GzipParser) Parse(r models.Reader) (models.Reader, error) {
 
+    if (r == nil) {
+        panic("GzipParser cannot compress nil input reader %s")
+    }
     buf := new(bytes.Buffer)
     gzipWriter := gzip.NewWriter(buf)
+    gzipWriter.Comment = "comment"
+    gzipWriter.Extra = []byte("extra")
+    gzipWriter.ModTime = time.Unix(1e8, 0)
+    gzipWriter.Name = "name"
 
     io.Copy(gzipWriter, r)
+    gzipWriter.Flush()
 
     var meta models.MetadataItem
     meta.Key = "gzip.comment"

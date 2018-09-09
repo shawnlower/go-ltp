@@ -115,12 +115,13 @@ Examples:
             wg.Add(1)
             go func() {
                 gzipParser := parsers.GzipParser{}
+                gzipParser2 := parsers.GzipParser{}
                 counterParser := parsers.CounterParser{}
-                serialParsers := []parsers.Parser{&gzipParser, &counterParser}
+                // serialParsers := []parsers.Parser{&gzipParser, &counterParser, &sha256}
+                serialParsers := []parsers.Parser{&gzipParser, &gzipParser2, &counterParser}
 
                 log.Debug(fmt.Sprint("Running serial parsing pipeline"))
-                // err := parsers.SerialParsers(tr, serialParsers)
-                err := parsers.FanoutParsers(tr, serialParsers)
+                err := parsers.SerialParsers(tr, serialParsers)
                 if (err != nil) {
                     log.Error("Failed to parse")
                 }
