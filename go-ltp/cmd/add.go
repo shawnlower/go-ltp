@@ -15,7 +15,10 @@
 package cmd
 
 import (
+    "fmt"
+    "io"
     "os"
+    "sync"
 
     "github.com/shawnlower/go-ltp/go-ltp/parsers"
     "github.com/shawnlower/go-ltp/go-ltp/models"
@@ -72,14 +75,62 @@ Examples:
             }
         }
 
-        log.Debug("Running parsers...")
+        /* Main loop; iterate across all of our readers and do the following:
+
+        1) Split our input into 2 io.Readers : tr, serialPipeR
+        2) Pass the 
+
+
+        */
         for _, reader := range(readers) {
-            var p parsers.Sha256Parser
-            err := p.Parse(reader)
-            if (err != nil) {
-                log.Error("Failed to parse")
-            }
+
+            // Add initial metadata (timestamp, etc)
+
+
+            // Split reader and run fanout parsing in parallel
+
+            // Create a pipe for the serial pipeline
+            serialPipeR, serialPipeW := io.Pipe()
+            tr := io.TeeReader(reader, serialPipeW)
+
+            // Collect metadata (hash, process metadata)
+            sha256 := parsers.Sha256Parser{}
+            sha512 := parsers.Sha512Parser{}
+            parserList := []parsers.Parser{&sha256, &sha512}
+
+            var wg sync.WaitGroup
+
+            // Reader 1
+            wg.Add(1)
+            go func() {
+                log.Debug(fmt.Sprintf("Running parsers: %s", parserList))
+                err := parsers.FanoutParsers(serialPipeR, parserList)
+                if (err != nil) {
+                    log.Error("Failed to parse")
+                }
+                wg.Done()
+            }()
+
+            // Serial parsing pipeline ( input -> compression -> encryption )
+            wg.Add(1)
+            go func() {
+                counterParser := parsers.CounterParser{}
+                serialParsers := []parsers.Parser{&counterParser}
+                log.Debug(fmt.Sprint("Running serial parsing pipeline"))
+                err := parsers.FanoutParsers(tr, serialParsers)
+                if (err != nil) {
+                    log.Error("Failed to parse")
+                }
+
+                // The pipe must be closed to allow all readers to exit
+                serialPipeW.Close()
+                wg.Done()
+            }()
+
+            wg.Wait()
         }
+
+        // Output pipeline (disk, network, etc)
 
 	},
 }
