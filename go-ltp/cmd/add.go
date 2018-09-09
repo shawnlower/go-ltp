@@ -15,22 +15,14 @@
 package cmd
 
 import (
-    "fmt"
     "os"
 
-    "github.com/shawnlower/go-ltp/go-ltp/stdinReader"
+    "github.com/shawnlower/go-ltp/go-ltp/parsers"
+    "github.com/shawnlower/go-ltp/go-ltp/models"
 
     log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
-
-type inputHandler func(chan bool)
-
-type job struct {
-    name    string
-    h       inputHandler
-    done    chan bool
-}
 
 // addCmd represents the add command
 var addCmd = &cobra.Command{
@@ -53,57 +45,42 @@ Examples:
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 
-        var jobs []job
-
         // Attempt to parse each of the inputs provided
         if len(args) < 1 {
             log.Fatal("No inputs specified. Use '-' for stdin.")
             os.Exit(1)
         }
 
-        // Queue a job to handle each input specified as an argument
+        // array for holding multiple inputs
+        var readers []models.Reader
+
         for _, inputString := range args {
             switch inputString {
             case "-":
                 log.Info("Reading from stdin...")
-                var c = make(chan bool, 1)
-                jobs = append(jobs, job{name: "-",
-                                        h: stdinReader.Handle,
-                                        done: c})
+                stdin, err := models.NewReader(nil)
+                if (err != nil) {
+                    log.Error("Error creating stdinReader: ", err)
+                }
+                log.Debug("Created stdinReader: ", stdin)
+                readers = append(readers, stdin)
 
             default:
                 // Unknown input type
                 log.Fatal("Input type not supported: " + inputString)
-
                 os.Exit(1)
             }
         }
 
-        // Launch each job by calling its associated handler function
-        for _, job := range(jobs) {
-            log.Debug(fmt.Sprintf("Launching job: %#v", job))
-
-            // Use the 'done' channel to signify job completion
-            go job.h(job.done)
-        }
-
-        // Wait for the jobs to complete using a non-blocking loop
-        // over all jobs
-        cnt := len(jobs) // Count of remaining jobs
-        for {
-            if cnt < 1 { break }
-
-            for i := 0; i < len(jobs); i++ {
-                select {
-                case <- jobs[i].done:
-                    log.Debug(fmt.Sprintf("Job %d finished.", i))
-                    cnt--
-                default:
-                    continue
-                }
+        log.Debug("Running parsers...")
+        for _, reader := range(readers) {
+            var p parsers.Sha256Parser
+            err := p.Parse(reader)
+            if (err != nil) {
+                log.Error("Failed to parse")
             }
-
         }
+
 	},
 }
 

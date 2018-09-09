@@ -66,7 +66,6 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug logging")
     viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 
-
 }
 
 // initConfig reads in config file and ENV variables if set.
