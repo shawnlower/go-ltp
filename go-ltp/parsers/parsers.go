@@ -13,12 +13,7 @@ import (
 )
 
 type Parser interface {
-    Parse(r models.Reader) (error)
-}
-
-type Sha512Parser struct{
-    Name string
-    Metadata []models.MetadataItem
+    Parse(r models.Reader) (models.Reader, error)
 }
 
 type Sha256Parser struct{
@@ -26,7 +21,7 @@ type Sha256Parser struct{
     Metadata []models.MetadataItem
 }
 
-func (p *Sha256Parser) Parse(r models.Reader) (error) {
+func (p *Sha256Parser) Parse(r models.Reader) (models.Reader, error) {
     h := sha256.New()
     _, err := io.Copy(h, r)
 
@@ -36,10 +31,15 @@ func (p *Sha256Parser) Parse(r models.Reader) (error) {
 
     p.Metadata = append(p.Metadata, meta)
     log.Debug(fmt.Sprintf("sha256 metadata: %s", p))
-    return err
+    return nil, err
 }
 
-func (p *Sha512Parser) Parse(r models.Reader) (error) {
+type Sha512Parser struct{
+    Name string
+    Metadata []models.MetadataItem
+}
+
+func (p *Sha512Parser) Parse(r models.Reader) (models.Reader, error) {
     h := sha512.New()
     _, err := io.Copy(h, r)
 
@@ -51,7 +51,7 @@ func (p *Sha512Parser) Parse(r models.Reader) (error) {
 
     p.Metadata = append(p.Metadata, meta)
     log.Debug(fmt.Sprintf("sha256 metadata: %s", p))
-    return err
+    return nil, err
 }
 
 type Pipe struct {
@@ -64,7 +64,7 @@ type CounterParser struct{
     Metadata []models.MetadataItem
 }
 
-func (p *CounterParser) Parse(reader models.Reader) (error) {
+func (p *CounterParser) Parse(reader models.Reader) (models.Reader, error) {
 
     buf := make([]byte, 1024)
     ctr := 0
@@ -88,7 +88,7 @@ func (p *CounterParser) Parse(reader models.Reader) (error) {
     p.Metadata = append(p.Metadata, meta)
     log.Debug(fmt.Sprintf("counter: %s", p))
 
-    return nil
+    return nil, nil
 }
 
 
@@ -112,7 +112,7 @@ func FanoutParsers(reader io.Reader, parsers []Parser) (err error) {
         f := func(i int) {
             // Call our parser, with its own pipe reader
             // we'll use the writer after all goroutines are launched
-            err := parsers[i].Parse(pipes[i].r)
+            _, err := parsers[i].Parse(pipes[i].r)
             if (err != nil) {
                 fmt.Println("Error writing pipe ", i, err)
             }

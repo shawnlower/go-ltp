@@ -114,9 +114,12 @@ Examples:
             // Serial parsing pipeline ( input -> compression -> encryption )
             wg.Add(1)
             go func() {
+                gzipParser := parsers.GzipParser{}
                 counterParser := parsers.CounterParser{}
-                serialParsers := []parsers.Parser{&counterParser}
+                serialParsers := []parsers.Parser{&gzipParser, &counterParser}
+
                 log.Debug(fmt.Sprint("Running serial parsing pipeline"))
+                // err := parsers.SerialParsers(tr, serialParsers)
                 err := parsers.FanoutParsers(tr, serialParsers)
                 if (err != nil) {
                     log.Error("Failed to parse")
