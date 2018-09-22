@@ -1,7 +1,8 @@
-package parsers
+package gzip
 
 import (
     "github.com/shawnlower/go-ltp/go-ltp/models"
+    "github.com/shawnlower/go-ltp/go-ltp/parsers"
 
     "bytes"
     "compress/gzip"
@@ -51,4 +52,10 @@ func (p *GzipParser) Parse(r io.Reader) (io.Reader, error) {
 
     return buf, nil
 }
+func NewGzipParser() parsers.Parser {
+    return &GzipParser{}
+}
 
+func init() {
+    parsers.RegisterParser("GZIP", NewGzipParser)
+}

@@ -3,8 +3,6 @@ package parsers
 import (
     "github.com/shawnlower/go-ltp/go-ltp/models"
 
-    "crypto/sha256"
-    "crypto/sha512"
 	"fmt"
 	"io"
     "sync"
@@ -18,103 +16,29 @@ type Parser interface {
     GetMetadata() []models.MetadataItem
 }
 
-type Sha256Parser struct{
-    Name string
-    Metadata []models.MetadataItem
+var parsers = make(map[string]Parser)
+
+func RegisterParser(name string, f func() Parser){
+    _, ok := parsers[name]
+    if (ok != false) {
+        log.Warning("Re-registering parser", name)
+    }
+    parsers[name] = f()
 }
 
-func (p *Sha256Parser) GetMetadata() []models.MetadataItem {
-    return p.Metadata
-}
-
-func (p *Sha256Parser) GetName() string {
-    return "Sha256Parser"
-}
-
-func (p *Sha256Parser) Parse(r io.Reader) (io.Reader, error) {
-    h := sha256.New()
-    _, err := io.Copy(h, r)
-
-    var meta models.MetadataItem
-    meta.Key = "sha256sum"
-    meta.Value = fmt.Sprintf("%x", h.Sum(nil))
-
-    p.Metadata = append(p.Metadata, meta)
-    return nil, err
-}
-
-type Sha512Parser struct{
-    Name string
-    Metadata []models.MetadataItem
-}
-
-func (p *Sha512Parser) GetMetadata() []models.MetadataItem {
-    return p.Metadata
-}
-
-func (p *Sha512Parser) GetName() string {
-    return "Sha512Parser"
-}
-
-func (p *Sha512Parser) Parse(r io.Reader) (io.Reader, error) {
-    h := sha512.New()
-    _, err := io.Copy(h, r)
-
-    var meta models.MetadataItem
-    meta.Key = "sha512sum"
-    meta.Value = fmt.Sprintf("%x", h.Sum(nil))
-
-    meta.Value = fmt.Sprintf("%x", h.Sum(nil))
-
-    p.Metadata = append(p.Metadata, meta)
-    return nil, err
+func GetParser(name string) Parser {
+    parser, ok := parsers[name]
+    if (ok != true) {
+        panic(fmt.Sprintf("Unable to find parser %s. Parsers: %#v.",
+            name, parsers))
+    }
+    return parser
 }
 
 type Pipe struct {
     r *io.PipeReader;
     w *io.PipeWriter
 }
-
-type CounterParser struct{
-    Name string
-    Metadata []models.MetadataItem
-}
-
-func (p *CounterParser) GetMetadata() []models.MetadataItem {
-    return p.Metadata
-}
-
-func (p *CounterParser) GetName() string {
-    return "CounterParser"
-}
-
-func (p *CounterParser) Parse(reader io.Reader) (io.Reader, error) {
-
-    buf := make([]byte, 1024)
-    ctr := 0
-    for {
-        n, err := reader.Read(buf)
-        if (err != nil && err != io.EOF) {
-            fmt.Println("Read error.")
-            break
-        }
-        ctr += n
-        if (err == io.EOF) {
-            // Write any remaining data, close the writer and break
-            break
-        }
-    }
-
-    var meta models.MetadataItem
-    meta.Key = "CounterParser.bytes"
-    meta.Value = fmt.Sprintf("%d", ctr)
-
-    p.Metadata = append(p.Metadata, meta)
-    return nil, nil
-}
-
-
-
 
 func FanoutParsers(reader io.Reader, parsers []Parser) (err error) {
 
@@ -186,6 +110,6 @@ func SerialParsers(reader io.Reader, parsers []Parser) (r io.Reader, err error) 
         }
         r1 = r2
     }
-    log.Debug(fmt.Sprintf("Returning I/O stream from %#v", parser))
+    log.Debug(fmt.Sprintln("Returning I/O stream from", parser.GetName()))
     return r1, nil
 }

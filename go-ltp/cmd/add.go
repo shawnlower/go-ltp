@@ -21,6 +21,10 @@ import (
     "sync"
 
     "github.com/shawnlower/go-ltp/go-ltp/parsers"
+    _ "github.com/shawnlower/go-ltp/go-ltp/parsers/counter"
+    _ "github.com/shawnlower/go-ltp/go-ltp/parsers/gzip"
+    _ "github.com/shawnlower/go-ltp/go-ltp/parsers/sha256"
+    _ "github.com/shawnlower/go-ltp/go-ltp/parsers/sha512"
 
     log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -56,11 +60,14 @@ Examples:
         // array for holding multiple inputs
         var readers []io.Reader
 
-        // Setup our initial list of parsers. All inputs should support at
-        // least the following
-        sha512 := parsers.Sha512Parser{}
-        counterParser := parsers.CounterParser{}
-        parserList := []parsers.Parser{&sha512, &counterParser}
+        // Setup our initial list of parsers.
+        var configParserList = []string{"GZIP", "SHA512", "COUNTER"}
+
+        var parserList []parsers.Parser
+        for _, parserName := range(configParserList) {
+            parserList = append(parserList, parsers.GetParser(parserName))
+        }
+        log.Debug(fmt.Printf("parserList: %#v", parserList))
 
         for _, inputString := range args {
             switch inputString {
@@ -108,10 +115,8 @@ Examples:
             }()
 
             // Serial parsing pipeline ( input -> compression -> encryption )
-            gzipParser := parsers.GzipParser{}
-            // gzipParser2 := parsers.GzipParser{}
-            // serialParsers := []parsers.Parser{&gzipParser, &gzipParser2}
-            serialParsers := []parsers.Parser{&gzipParser}
+            gzipParser := parsers.GetParser("GZIP")
+            serialParsers := []parsers.Parser{gzipParser}
 
             log.Debug(fmt.Sprint("Running serial parsing pipeline"))
             outReader, err := parsers.SerialParsers(tr, serialParsers)
@@ -123,13 +128,20 @@ Examples:
             serialPipeW.Close()
             wg.Wait()
 
-            log.Debug(fmt.Printf("Reader %#v", reader))
             // Write out metadata
-            for i, mdi := range(parserList) {
-                log.Debug(fmt.Sprintf("Meta for fanout parser %d: %#v", i, mdi))
+            for _, parser := range(parserList) {
+                name := parser.GetName()
+                log.Debug(fmt.Sprintln("Metadata for fanout parser", name))
+                for _, mdi := range(parser.GetMetadata()) {
+                    log.Debug(fmt.Sprintf("\t%12s = %s", mdi.Key, mdi.Value))
+                }
             }
-            for i, mdi := range(serialParsers) {
-                log.Debug(fmt.Sprintf("Meta for serial parser %d: %#v", i, mdi))
+            for _, parser := range(serialParsers) {
+                name := parser.GetName()
+                log.Debug(fmt.Sprintln("Metadata for serial parser", name))
+                for _, mdi := range(parser.GetMetadata()) {
+                    log.Debug(fmt.Sprintf("\t%12s = %s", mdi.Key, mdi.Value))
+                }
             }
 
             // Output pipeline (disk, network, etc)
