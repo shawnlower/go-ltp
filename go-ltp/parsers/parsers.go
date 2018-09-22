@@ -13,7 +13,9 @@ import (
 )
 
 type Parser interface {
-    Parse(r models.Reader) (models.Reader, error)
+    Parse(r io.Reader) (io.Reader, error)
+    GetName() string
+    GetMetadata() []models.MetadataItem
 }
 
 type Sha256Parser struct{
@@ -21,7 +23,15 @@ type Sha256Parser struct{
     Metadata []models.MetadataItem
 }
 
-func (p *Sha256Parser) Parse(r models.Reader) (models.Reader, error) {
+func (p *Sha256Parser) GetMetadata() []models.MetadataItem {
+    return p.Metadata
+}
+
+func (p *Sha256Parser) GetName() string {
+    return "Sha256Parser"
+}
+
+func (p *Sha256Parser) Parse(r io.Reader) (io.Reader, error) {
     h := sha256.New()
     _, err := io.Copy(h, r)
 
@@ -30,7 +40,6 @@ func (p *Sha256Parser) Parse(r models.Reader) (models.Reader, error) {
     meta.Value = fmt.Sprintf("%x", h.Sum(nil))
 
     p.Metadata = append(p.Metadata, meta)
-    log.Debug(fmt.Sprintf("sha256 metadata: %s", p))
     return nil, err
 }
 
@@ -39,7 +48,15 @@ type Sha512Parser struct{
     Metadata []models.MetadataItem
 }
 
-func (p *Sha512Parser) Parse(r models.Reader) (models.Reader, error) {
+func (p *Sha512Parser) GetMetadata() []models.MetadataItem {
+    return p.Metadata
+}
+
+func (p *Sha512Parser) GetName() string {
+    return "Sha512Parser"
+}
+
+func (p *Sha512Parser) Parse(r io.Reader) (io.Reader, error) {
     h := sha512.New()
     _, err := io.Copy(h, r)
 
@@ -50,7 +67,6 @@ func (p *Sha512Parser) Parse(r models.Reader) (models.Reader, error) {
     meta.Value = fmt.Sprintf("%x", h.Sum(nil))
 
     p.Metadata = append(p.Metadata, meta)
-    log.Debug(fmt.Sprintf("sha256 metadata: %s", p))
     return nil, err
 }
 
@@ -64,7 +80,15 @@ type CounterParser struct{
     Metadata []models.MetadataItem
 }
 
-func (p *CounterParser) Parse(reader models.Reader) (models.Reader, error) {
+func (p *CounterParser) GetMetadata() []models.MetadataItem {
+    return p.Metadata
+}
+
+func (p *CounterParser) GetName() string {
+    return "CounterParser"
+}
+
+func (p *CounterParser) Parse(reader io.Reader) (io.Reader, error) {
 
     buf := make([]byte, 1024)
     ctr := 0
@@ -86,8 +110,6 @@ func (p *CounterParser) Parse(reader models.Reader) (models.Reader, error) {
     meta.Value = fmt.Sprintf("%d", ctr)
 
     p.Metadata = append(p.Metadata, meta)
-    log.Debug(fmt.Sprintf("counter: %s", p))
-
     return nil, nil
 }
 
@@ -143,12 +165,11 @@ func FanoutParsers(reader io.Reader, parsers []Parser) (err error) {
     return nil
 }
 
-func SerialParsers(reader io.Reader, parsers []Parser) (r models.Reader, err error) {
+func SerialParsers(reader io.Reader, parsers []Parser) (r io.Reader, err error) {
 
-    var r1, r2 models.Reader
+    var r1, r2 io.Reader
 
     log.Debug(fmt.Sprintf("Received %d parsers (%s)", len(parsers), parsers))
-    log.Debug(fmt.Sprintf("Connecting input %s to first pipe", reader))
 
     parser := parsers[0]
     r1, err = parser.Parse(reader)

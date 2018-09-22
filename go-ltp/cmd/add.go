@@ -21,7 +21,6 @@ import (
     "sync"
 
     "github.com/shawnlower/go-ltp/go-ltp/parsers"
-    "github.com/shawnlower/go-ltp/go-ltp/models"
 
     log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -55,7 +54,7 @@ Examples:
         }
 
         // array for holding multiple inputs
-        var readers []models.Reader
+        var readers []io.Reader
 
         // Setup our initial list of parsers. All inputs should support at
         // least the following
@@ -67,12 +66,7 @@ Examples:
             switch inputString {
             case "-":
                 log.Info("Reading from stdin...")
-                stdin, err := models.NewReader(nil)
-                if (err != nil) {
-                    log.Error("Error creating stdinReader: ", err)
-                }
-                log.Debug("Created stdinReader: ", stdin)
-                readers = append(readers, stdin)
+                readers = append(readers, os.Stdin)
 
             default:
                 // Unknown input type
@@ -94,7 +88,7 @@ Examples:
                  {source stream} -> {compression parser} -> {encryption parser}
             3) Finally, the output stream and metadata are written.
         */
-        for _, reader := range(readers) {
+        for idx, reader := range(readers) {
 
             // Create a pipe for the serial pipeline
             serialPipeR, serialPipeW := io.Pipe()
@@ -113,10 +107,6 @@ Examples:
                 wg.Done()
             }()
 
-            /*
-            Test output parser
-            */
-
             // Serial parsing pipeline ( input -> compression -> encryption )
             gzipParser := parsers.GzipParser{}
             // gzipParser2 := parsers.GzipParser{}
@@ -131,15 +121,25 @@ Examples:
 
             // The pipe must be closed to allow all readers to exit
             serialPipeW.Close()
+            wg.Wait()
+
+            log.Debug(fmt.Printf("Reader %#v", reader))
+            // Write out metadata
+            for i, mdi := range(parserList) {
+                log.Debug(fmt.Sprintf("Meta for fanout parser %d: %#v", i, mdi))
+            }
+            for i, mdi := range(serialParsers) {
+                log.Debug(fmt.Sprintf("Meta for serial parser %d: %#v", i, mdi))
+            }
 
             // Output pipeline (disk, network, etc)
-            fileWriter(outReader)
+            filename := fmt.Sprintf("outfile.%d.data", idx)
+            fileWriter(outReader, filename)
         }
 	},
 }
 
-func fileWriter(r models.Reader) (err error) {
-    filename := "./out.dat"
+func fileWriter(r io.Reader, filename string) (err error) {
     outfile, err := os.Create(filename)
     defer outfile.Close()
 
