@@ -26,13 +26,14 @@ func (p *GzipParser) Parse(r models.Reader) (models.Reader, error) {
     }
     buf := new(bytes.Buffer)
     gzipWriter := gzip.NewWriter(buf)
+    defer gzipWriter.Close()
+
     gzipWriter.Comment = "comment"
     gzipWriter.Extra = []byte("extra")
     gzipWriter.ModTime = time.Unix(1e8, 0)
     gzipWriter.Name = "name"
 
     io.Copy(gzipWriter, r)
-    gzipWriter.Flush()
 
     var meta models.MetadataItem
     meta.Key = "gzip.comment"
