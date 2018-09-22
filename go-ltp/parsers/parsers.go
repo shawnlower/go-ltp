@@ -143,24 +143,28 @@ func FanoutParsers(reader io.Reader, parsers []Parser) (err error) {
     return nil
 }
 
-func SerialParsers(reader io.Reader, parsers []Parser) (err error) {
+func SerialParsers(reader io.Reader, parsers []Parser) (r models.Reader, err error) {
 
     var r1, r2 models.Reader
 
     log.Debug(fmt.Sprintf("Received %d parsers (%s)", len(parsers), parsers))
     log.Debug(fmt.Sprintf("Connecting input %s to first pipe", reader))
-    r1, err = parsers[0].Parse(reader)
 
-    for i := 1; i < len(parsers); i++ {
+    parser := parsers[0]
+    r1, err = parser.Parse(reader)
+
+    var i int
+    for i = 1; i < len(parsers); i++ {
+        parser = parsers[i]
         if (r1 == nil) {
             panic("Received nil reader from parser list. Cannot continue.")
         }
-        r2, err = parsers[i].Parse(r1)
+        r2, err = parser.Parse(r1)
         if (err != nil) {
-            log.Error("Failed to parse pipe", i)
+            panic(fmt.Sprintf("Failed to parse pipe %#v", parser))
         }
         r1 = r2
     }
-    log.Debug(fmt.Sprintf("Connecting input %s to last pipe", reader))
-    return nil
+    log.Debug(fmt.Sprintf("Returning I/O stream from %#v", parser))
+    return r1, nil
 }

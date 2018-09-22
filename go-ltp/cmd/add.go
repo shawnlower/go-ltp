@@ -57,6 +57,12 @@ Examples:
         // array for holding multiple inputs
         var readers []models.Reader
 
+        // Setup our initial list of parsers. All inputs should support at
+        // least the following
+        sha512 := parsers.Sha512Parser{}
+        counterParser := parsers.CounterParser{}
+        parserList := []parsers.Parser{&sha512, &counterParser}
+
         for _, inputString := range args {
             switch inputString {
             case "-":
@@ -77,26 +83,22 @@ Examples:
 
         /* Main loop; iterate across all of our readers and do the following:
 
-        1) Split our input into 2 io.Readers : tr, serialPipeR
-        2) Pass the 
-
-
+            1) Split the input into two `io.Reader`s. The first is processed
+               as part of a fanout pipeline by FanoutParsers(), each parser
+               reading the stream and outputting metadata, such as a hash,
+               the filesystem metadata, or the OS process metadata for the
+               remote end of the stdin pipe.
+            2) The second stream is a serial pipeline, which passes the data
+               through a sequence of parsers.
+               Example:
+                 {source stream} -> {compression parser} -> {encryption parser}
+            3) Finally, the output stream and metadata are written.
         */
         for _, reader := range(readers) {
-
-            // Add initial metadata (timestamp, etc)
-
-
-            // Split reader and run fanout parsing in parallel
 
             // Create a pipe for the serial pipeline
             serialPipeR, serialPipeW := io.Pipe()
             tr := io.TeeReader(reader, serialPipeW)
-
-            // Collect metadata (hash, process metadata)
-            sha256 := parsers.Sha256Parser{}
-            sha512 := parsers.Sha512Parser{}
-            parserList := []parsers.Parser{&sha256, &sha512}
 
             var wg sync.WaitGroup
 
@@ -111,32 +113,43 @@ Examples:
                 wg.Done()
             }()
 
+            /*
+            Test output parser
+            */
+
             // Serial parsing pipeline ( input -> compression -> encryption )
-            wg.Add(1)
-            go func() {
-                gzipParser := parsers.GzipParser{}
-                gzipParser2 := parsers.GzipParser{}
-                counterParser := parsers.CounterParser{}
-                // serialParsers := []parsers.Parser{&gzipParser, &counterParser, &sha256}
-                serialParsers := []parsers.Parser{&gzipParser, &gzipParser2, &counterParser}
+            gzipParser := parsers.GzipParser{}
+            // gzipParser2 := parsers.GzipParser{}
+            // serialParsers := []parsers.Parser{&gzipParser, &gzipParser2}
+            serialParsers := []parsers.Parser{&gzipParser}
 
-                log.Debug(fmt.Sprint("Running serial parsing pipeline"))
-                err := parsers.SerialParsers(tr, serialParsers)
-                if (err != nil) {
-                    log.Error("Failed to parse")
-                }
+            log.Debug(fmt.Sprint("Running serial parsing pipeline"))
+            outReader, err := parsers.SerialParsers(tr, serialParsers)
+            if (err != nil) {
+                log.Error("Failed to parse")
+            }
 
-                // The pipe must be closed to allow all readers to exit
-                serialPipeW.Close()
-                wg.Done()
-            }()
+            // The pipe must be closed to allow all readers to exit
+            serialPipeW.Close()
 
-            wg.Wait()
+            // Output pipeline (disk, network, etc)
+            fileWriter(outReader)
         }
-
-        // Output pipeline (disk, network, etc)
-
 	},
+}
+
+func fileWriter(r models.Reader) (err error) {
+    filename := "./out.dat"
+    outfile, err := os.Create(filename)
+    defer outfile.Close()
+
+    if (err != nil) {
+        panic(fmt.Sprintln("Unable to create output file", filename))
+    }
+    log.Debug(fmt.Println("Writing output to file:", filename))
+    io.Copy(outfile, r)
+
+    return nil
 }
 
 func init() {
