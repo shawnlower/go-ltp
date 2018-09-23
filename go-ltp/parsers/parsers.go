@@ -93,8 +93,6 @@ func SerialParsers(reader io.Reader, parsers []Parser) (r io.Reader, err error) 
 
     var r1, r2 io.Reader
 
-    log.Debug(fmt.Sprintf("Received %d parsers (%s)", len(parsers), parsers))
-
     parser := parsers[0]
     r1, err = parser.Parse(reader)
 

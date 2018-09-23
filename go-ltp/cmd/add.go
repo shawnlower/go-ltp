@@ -29,6 +29,7 @@ import (
 
     log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // addCmd represents the add command
@@ -62,13 +63,24 @@ Examples:
         var readers []io.Reader
 
         // Setup our initial list of parsers.
-        var configParserList = []string{"SHA512", "COUNTER"}
 
-        var parserList []parsers.Parser
-        for _, parserName := range(configParserList) {
-            parserList = append(parserList, parsers.GetParser(parserName))
+        var asyncParsers []parsers.Parser
+        var parserNames []string
+        for _, parserName := range(viper.GetStringSlice("parsers.async")) {
+            parser := parsers.GetParser(parserName)
+            asyncParsers = append(asyncParsers, parser)
+            parserNames = append(parserNames, parser.GetName())
         }
-        log.Debug(fmt.Printf("parserList: %#v", parserList))
+        log.Debug("Added async parsers: ", parserNames)
+
+        var serialParsers []parsers.Parser
+        parserNames = nil
+        for _, parserName := range(viper.GetStringSlice("parsers.serial")) {
+            parser := parsers.GetParser(parserName)
+            serialParsers = append(serialParsers, parser)
+            parserNames = append(parserNames, parser.GetName())
+        }
+        log.Debug("Added serial parsers: ", parserNames)
 
         for _, inputString := range args {
             switch inputString {
@@ -107,8 +119,7 @@ Examples:
             // Reader 1
             wg.Add(1)
             go func() {
-                log.Debug(fmt.Sprintf("Running parsers: %s", parserList))
-                err := parsers.FanoutParsers(serialPipeR, parserList)
+                err := parsers.FanoutParsers(serialPipeR, asyncParsers)
                 if (err != nil) {
                     log.Error("Failed to parse")
                 }
@@ -116,13 +127,6 @@ Examples:
             }()
 
             // Serial parsing pipeline ( input -> compression -> encryption )
-            var serialParsers []parsers.Parser
-            // for _, name := range([]string{"GZIP", "AES"}) {
-            for _, name := range([]string{"GZIP", "AES"}) {
-                serialParsers = append(serialParsers, parsers.GetParser(name))
-            }
-
-            log.Debug(fmt.Sprint("Running serial parsing pipeline"))
             outReader, err := parsers.SerialParsers(tr, serialParsers)
             if (err != nil) {
                 log.Error("Failed to parse")
@@ -133,7 +137,7 @@ Examples:
             wg.Wait()
 
             // Write out metadata
-            for _, parser := range(parserList) {
+            for _, parser := range(asyncParsers) {
                 name := parser.GetName()
                 log.Debug(fmt.Sprintln("Metadata for fanout parser", name))
                 for _, mdi := range(parser.GetMetadata()) {
@@ -169,12 +173,7 @@ func fileWriter(r io.Reader, filename string) (err error) {
 }
 
 func init() {
+
 	rootCmd.AddCommand(addCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// addCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 }

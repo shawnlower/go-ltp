@@ -8,9 +8,11 @@ import (
     "crypto/aes"
     "crypto/cipher"
     "crypto/rand"
+    "encoding/hex"
 	"io"
     "fmt"
 
+	"github.com/spf13/viper"
     log "github.com/sirupsen/logrus"
 )
 
@@ -25,8 +27,12 @@ References:
     https://golang.org/pkg/crypto/cipher/#NewGCM
 */
 
+const (
+    KEYSIZE = 32
+)
+
 type AESParser struct{
-    Name string
+    Key string
     Metadata []models.MetadataItem
 }
 
@@ -39,11 +45,27 @@ func (p *AESParser) GetName() string {
 }
 
 func (p *AESParser) Parse(r io.Reader) (io.Reader, error) {
+    var key []byte
+    var err error
+
 	message := new(bytes.Buffer)
     message.ReadFrom(r)
 
-    key := []byte("the-key-has-to-be-32-bytes-long!")
-    log.Debug(fmt.Sprintf("Using key: %x", key))
+    k := viper.GetString("parsers.aes.key")
+    if (k[:2] == "0x") {
+        key, err = hex.DecodeString(k[2:])
+        if (err != nil) {
+            panic(err)
+        }
+    } else {
+        key = []byte(k)
+    }
+
+    if (len(key) != KEYSIZE) {
+        panic(fmt.Sprintf("Key must be exactly %d bytes (got %d)",
+            KEYSIZE, len(key)))
+    }
+    log.Debug(fmt.Sprintf("Using key: %s", hex.EncodeToString(key)))
 
     c, err := aes.NewCipher(key)
     if err != nil {
@@ -72,6 +94,7 @@ func (p *AESParser) Parse(r io.Reader) (io.Reader, error) {
 }
 
 func NewAESParser() parsers.Parser {
+
     return &AESParser{}
 }
 
