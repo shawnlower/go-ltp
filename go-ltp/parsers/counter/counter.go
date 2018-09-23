@@ -41,11 +41,10 @@ func (p *CounterParser) Parse(reader io.Reader) (io.Reader, error) {
         }
     }
 
-    var meta models.MetadataItem
-    meta.Key = "CounterParser.bytes"
-    meta.Value = fmt.Sprintf("%d", ctr)
+    p.Metadata = []models.MetadataItem{
+        {"bytes": fmt.Sprintf("%d", ctr)},
+    }
 
-    p.Metadata = append(p.Metadata, meta)
     return nil, nil
 }
 

@@ -43,13 +43,12 @@ func (p *MimetypeParser) Parse(r io.Reader) (io.Reader, error) {
             break
         }
     }
+    mimetype := http.DetectContentType(buf)
 
-    var meta models.MetadataItem
-    mimeType := http.DetectContentType(buf)
-    meta.Key = "mime-type"
-    meta.Value = fmt.Sprintf("%s", mimeType)
+    p.Metadata = []models.MetadataItem{
+        { "mime-type": mimetype },
+    }
 
-    p.Metadata = append(p.Metadata, meta)
     log.Debug(fmt.Sprintf("%s metadata: %s", p.GetName(), p.GetMetadata()))
 
     return r, nil

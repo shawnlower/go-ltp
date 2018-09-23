@@ -28,11 +28,10 @@ func (p *Sha256Parser) Parse(r io.Reader) (io.Reader, error) {
     h := sha256.New()
     _, err := io.Copy(h, r)
 
-    var meta models.MetadataItem
-    meta.Key = "sha256sum"
-    meta.Value = fmt.Sprintf("%x", h.Sum(nil))
+    p.Metadata = []models.MetadataItem{
+        {"hash": fmt.Sprintf("%x", h.Sum(nil))},
+    }
 
-    p.Metadata = append(p.Metadata, meta)
     return nil, err
 }
 

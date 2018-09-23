@@ -15,12 +15,18 @@
 package cmd
 
 import (
+    "bytes"
+    "path/filepath"
+    "encoding/json"
     "fmt"
     "io"
     "os"
+    "os/user"
+    "strings"
     "sync"
 
     "github.com/shawnlower/go-ltp/go-ltp/parsers"
+    "github.com/shawnlower/go-ltp/go-ltp/models"
     _ "github.com/shawnlower/go-ltp/go-ltp/parsers/aes"
     _ "github.com/shawnlower/go-ltp/go-ltp/parsers/counter"
     _ "github.com/shawnlower/go-ltp/go-ltp/parsers/mimetype"
@@ -61,7 +67,7 @@ Examples:
         }
 
         // array for holding multiple inputs
-        var readers []io.Reader
+        var inputs []models.Input
 
         // Setup our initial list of parsers.
 
@@ -87,7 +93,8 @@ Examples:
             switch inputString {
             case "-":
                 log.Info("Reading from stdin...")
-                readers = append(readers, os.Stdin)
+                inputs = append(inputs,
+                    models.Input{Name: "stdin", Reader: os.Stdin})
 
             default:
                 // Unknown input type
@@ -96,7 +103,7 @@ Examples:
             }
         }
 
-        /* Main loop; iterate across all of our readers and do the following:
+        /* Main loop; iterate across all of our inputs and do the following:
 
             1) Split the input into two `io.Reader`s. The first is processed
                as part of a fanout pipeline by FanoutParsers(), each parser
@@ -109,11 +116,11 @@ Examples:
                  {source stream} -> {compression parser} -> {encryption parser}
             3) Finally, the output stream and metadata are written.
         */
-        for idx, reader := range(readers) {
+        for _, input := range(inputs) {
 
             // Create a pipe for the serial pipeline
             serialPipeR, serialPipeW := io.Pipe()
-            tr := io.TeeReader(reader, serialPipeW)
+            tr := io.TeeReader(input.Reader, serialPipeW)
 
             var wg sync.WaitGroup
 
@@ -133,47 +140,117 @@ Examples:
                 log.Error("Failed to parse")
             }
 
-            // The pipe must be closed to allow all readers to exit
+            // The pipe must be closed to allow all inputs to exit
             serialPipeW.Close()
             wg.Wait()
 
-            // Write out metadata
+            // Construct filename based on hash of the contents.
+            var datafile, metadatafile string
             for _, parser := range(asyncParsers) {
-                name := parser.GetName()
-                log.Debug(fmt.Sprintln("Metadata for fanout parser", name))
                 for _, mdi := range(parser.GetMetadata()) {
-                    log.Debug(fmt.Sprintf("\t%12s = %s", mdi.Key, mdi.Value))
+                    if mdi["hash"] != "" {
+                        datafile = fmt.Sprintf("%s.data", mdi["hash"])
+                        metadatafile = fmt.Sprintf("%s.json", mdi["hash"])
+                        log.Debug("Got filename ", datafile)
+                    }
                 }
             }
-            for _, parser := range(serialParsers) {
-                name := parser.GetName()
-                log.Debug(fmt.Sprintln("Metadata for serial parser", name))
-                for _, mdi := range(parser.GetMetadata()) {
-                    log.Debug(fmt.Sprintf("\t%12s = %s", mdi.Key, mdi.Value))
-                }
+            if datafile == "" {
+                datafile = fmt.Sprintf("output.data")
+                metadatafile = fmt.Sprintf("output.json")
             }
-
-            // Output pipeline (disk, network, etc)
-            filename := fmt.Sprintf("outfile.%d.data", idx)
-            fileWriter(outReader, filename)
+            fileWriter(outReader, datafile)
 
             /*
             We can now handle the metadata (including any output
             meta-data, such as output filename, s3/gcs URL, etc).
-
             */
+
+            jsonDoc, err := inputToJson(&input, &asyncParsers, &serialParsers)
+
+            fileWriter(bytes.NewReader(jsonDoc), metadatafile)
         }
 	},
 }
 
-func fileWriter(r io.Reader, filename string) (err error) {
+// func metadataToJson(m ...[]models.MetadataItem){
+func inputToJson(input *models.Input, asyncParsers  *[]parsers.Parser,
+                 serialParsers *[]parsers.Parser) (jsonDoc []byte, err error) {
+
+    /*
+    Return a JSON document ( []byte ) from an input, and associated parsers.
+        {
+            "source": {
+                "name": input.Name,
+            },
+            "metadata": [ {
+                "parser": "SHA256",
+                "type": "async",
+                "items": [
+                    { Key: Value },
+                    { Key: Value },
+                    { Key: Value } ]
+            }, {
+                "parser": "AES",
+                "type": "serial",
+                "items": [
+                    { Key: Value },
+                    { Key: Value },
+                    { Key: Value } ]
+          } ] } }
+    */
+
+    // Setup our initial JSON object with the top-level keys
+    jmeta := models.JsonMetadata{}
+
+    jmeta.Source.Name = input.Name
+
+    // Add async
+    for _, parser := range(*asyncParsers) {
+        metadata := models.JsonMetaItem{}
+        metadata.Parser = parser.GetName()
+        metadata.Type = "async"
+
+        // Add per-parser metadata
+        for _, metadataItem := range(parser.GetMetadata()) {
+            metadata.Items = append(metadata.Items, metadataItem)
+        }
+        jmeta.Metadata = append(jmeta.Metadata, metadata)
+    }
+
+    // Add serial
+    for _, parser := range(*serialParsers) {
+        metadata := models.JsonMetaItem{}
+        metadata.Parser = parser.GetName()
+        metadata.Type = "serial"
+
+        // Add per-parser metadata
+        for _, metadataItem := range(parser.GetMetadata()) {
+            metadata.Items = append(metadata.Items, metadataItem)
+        }
+        jmeta.Metadata = append(jmeta.Metadata, metadata)
+    }
+
+    jsonDoc, _ = json.MarshalIndent(jmeta, "", "  ")
+    // log.Debug(fmt.Sprintf("***\njson: %s\n", jsonDoc))
+    return jsonDoc, nil
+}
+
+func fileWriter(r io.Reader, f string) (err error) {
+    basedir := viper.GetString("outputs.file.basedir")
+    if strings.HasPrefix(basedir, "~") {
+        u, _ := user.Current()
+        basedir = filepath.Join(u.HomeDir, basedir[1:])
+    }
+    filename := filepath.Join(basedir, f)
+
     outfile, err := os.Create(filename)
     defer outfile.Close()
 
     if (err != nil) {
         panic(fmt.Sprintln("Unable to create output file", filename))
     }
-    log.Debug(fmt.Println("Writing output to file:", filename))
+    log.Debug("Writing output to file:", filename)
     io.Copy(outfile, r)
 
     return nil

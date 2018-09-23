@@ -6,7 +6,6 @@ import (
 
     "bytes"
     "compress/gzip"
-	"fmt"
 	"io"
     "time"
 
@@ -45,14 +44,13 @@ func (p *GzipParser) Parse(r io.Reader) (io.Reader, error) {
 
     io.Copy(gzipWriter, r)
 
-    meta := []models.MetadataItem{
-        { Key: "comment", Value: comment },
-        { Key: "modtime", Value: fmt.Sprint(modtime) },
-        { Key: "name", Value: name },
+    // var meta models.MetadataItem
+    // meta := models.MetadataItem{ "name": name }
+    p.Metadata = []models.MetadataItem{
+        { "name": name,
+          "comment": comment,
+          "modified": modtime.String() },
     }
-
-    p.Metadata = meta
-
     return buf, nil
 }
 func NewGzipParser() parsers.Parser {

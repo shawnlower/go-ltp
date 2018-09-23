@@ -32,13 +32,9 @@ func (p *Sha512Parser) Parse(r io.Reader) (io.Reader, error) {
     h := sha512.New()
     _, err := io.Copy(h, r)
 
-    var meta models.MetadataItem
-    meta.Key = "sha512sum"
-    meta.Value = fmt.Sprintf("%x", h.Sum(nil))
-
-    meta.Value = fmt.Sprintf("%x", h.Sum(nil))
-
-    p.Metadata = append(p.Metadata, meta)
+    p.Metadata = []models.MetadataItem{
+        {"hash": fmt.Sprintf("%x", h.Sum(nil))},
+    }
     return nil, err
 }
 

@@ -89,7 +89,11 @@ func (p *AESParser) Parse(r io.Reader) (io.Reader, error) {
     buf = gcm.Seal(buf, buf[:gcm.NonceSize()], message.Bytes(), nil)
 
     log.Debug(fmt.Sprintf("Using nonce: %x", nonce))
-    // log.Debug(fmt.Sprintf("ciphertext: %x", buf))
+
+    p.Metadata = []models.MetadataItem{
+        { "cipher": "aes-256-gcm" },
+    }
+
     return bytes.NewBuffer(buf), nil
 }
 
