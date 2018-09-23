@@ -22,6 +22,7 @@ import (
     "io"
     "os"
     "os/user"
+    "regexp"
     "strings"
     "sync"
 
@@ -90,13 +91,15 @@ Examples:
         log.Debug("Added serial parsers: ", parserNames)
 
         for _, inputString := range args {
-            switch inputString {
-            case "-":
+            if inputString == "-" {
                 log.Info("Reading from stdin...")
                 inputs = append(inputs,
                     models.Input{Name: "stdin", Reader: os.Stdin})
-
-            default:
+            } else if m, _ := regexp.MatchString("https?://", inputString); m {
+                // Call HTTP fetch module to retrieve page
+                log.Fatal("URLs not yet supported.")
+                os.Exit(1)
+            } else {
                 // Assume the argument is a file; fail if it can't be opened
                 fd, err := os.Open(inputString)
                 if os.IsNotExist(err) {
@@ -104,7 +107,7 @@ Examples:
                     os.Exit(1)
                 }
 
-                input := models.Input{Name: "stdin", Reader: fd}
+                input := models.Input{Name: "file", Reader: fd}
 
                 // Add the parsers to the input object
                 input.Metadata = append(input.Metadata,
