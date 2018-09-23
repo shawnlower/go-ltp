@@ -21,6 +21,7 @@ import (
     "sync"
 
     "github.com/shawnlower/go-ltp/go-ltp/parsers"
+    _ "github.com/shawnlower/go-ltp/go-ltp/parsers/aes"
     _ "github.com/shawnlower/go-ltp/go-ltp/parsers/counter"
     _ "github.com/shawnlower/go-ltp/go-ltp/parsers/gzip"
     _ "github.com/shawnlower/go-ltp/go-ltp/parsers/sha256"
@@ -61,7 +62,7 @@ Examples:
         var readers []io.Reader
 
         // Setup our initial list of parsers.
-        var configParserList = []string{"GZIP", "SHA512", "COUNTER"}
+        var configParserList = []string{"SHA512", "COUNTER"}
 
         var parserList []parsers.Parser
         for _, parserName := range(configParserList) {
@@ -115,8 +116,11 @@ Examples:
             }()
 
             // Serial parsing pipeline ( input -> compression -> encryption )
-            gzipParser := parsers.GetParser("GZIP")
-            serialParsers := []parsers.Parser{gzipParser}
+            var serialParsers []parsers.Parser
+            // for _, name := range([]string{"GZIP", "AES"}) {
+            for _, name := range([]string{"GZIP", "AES"}) {
+                serialParsers = append(serialParsers, parsers.GetParser(name))
+            }
 
             log.Debug(fmt.Sprint("Running serial parsing pipeline"))
             outReader, err := parsers.SerialParsers(tr, serialParsers)
