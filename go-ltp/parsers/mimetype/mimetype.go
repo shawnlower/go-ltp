@@ -53,7 +53,7 @@ func (p *MimetypeParser) Parse(r io.Reader) (io.Reader, error) {
 
     return r, nil
 }
-func NewMimetypeParser() parsers.Parser {
+func NewMimetypeParser() models.Parser {
     return &MimetypeParser{}
 }
 

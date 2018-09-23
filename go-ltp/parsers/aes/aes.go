@@ -97,7 +97,7 @@ func (p *AESParser) Parse(r io.Reader) (io.Reader, error) {
     return bytes.NewBuffer(buf), nil
 }
 
-func NewAESParser() parsers.Parser {
+func NewAESParser() models.Parser {
 
     return &AESParser{}
 }

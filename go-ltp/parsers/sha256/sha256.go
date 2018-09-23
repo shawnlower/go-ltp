@@ -36,7 +36,7 @@ func (p *Sha256Parser) Parse(r io.Reader) (io.Reader, error) {
 }
 
 
-func NewSha256Parser() parsers.Parser {
+func NewSha256Parser() models.Parser {
     return &Sha256Parser{}
 }
 

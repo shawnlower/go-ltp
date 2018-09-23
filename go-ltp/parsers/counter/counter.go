@@ -48,7 +48,7 @@ func (p *CounterParser) Parse(reader io.Reader) (io.Reader, error) {
     return nil, nil
 }
 
-func NewCounterParser() parsers.Parser {
+func NewCounterParser() models.Parser {
     return &CounterParser{}
 }
 

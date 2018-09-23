@@ -10,15 +10,9 @@ import (
     log "github.com/sirupsen/logrus"
 )
 
-type Parser interface {
-    Parse(r io.Reader) (io.Reader, error)
-    GetName() string
-    GetMetadata() []models.MetadataItem
-}
+var parsers = make(map[string]models.Parser)
 
-var parsers = make(map[string]Parser)
-
-func RegisterParser(name string, f func() Parser){
+func RegisterParser(name string, f func() models.Parser){
     _, ok := parsers[name]
     if (ok != false) {
         log.Warning("Re-registering parser", name)
@@ -26,7 +20,7 @@ func RegisterParser(name string, f func() Parser){
     parsers[name] = f()
 }
 
-func GetParser(name string) Parser {
+func GetParser(name string) models.Parser {
     parser, ok := parsers[name]
     if (ok != true) {
         panic(fmt.Sprintf("Unable to find parser %s. Parsers: %#v.",
@@ -40,7 +34,7 @@ type Pipe struct {
     w *io.PipeWriter
 }
 
-func FanoutParsers(reader io.Reader, parsers []Parser) (err error) {
+func FanoutParsers(reader io.Reader, parsers []models.Parser) (err error) {
 
     buf := make([]byte, 1024)
 
@@ -89,7 +83,7 @@ func FanoutParsers(reader io.Reader, parsers []Parser) (err error) {
     return nil
 }
 
-func SerialParsers(reader io.Reader, parsers []Parser) (r io.Reader, err error) {
+func SerialParsers(reader io.Reader, parsers []models.Parser) (r io.Reader, err error) {
 
     var r1, r2 io.Reader
 

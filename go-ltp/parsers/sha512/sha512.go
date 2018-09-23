@@ -38,7 +38,7 @@ func (p *Sha512Parser) Parse(r io.Reader) (io.Reader, error) {
     return nil, err
 }
 
-func NewSha512Parser() parsers.Parser {
+func NewSha512Parser() models.Parser {
     return &Sha512Parser{}
 }
 

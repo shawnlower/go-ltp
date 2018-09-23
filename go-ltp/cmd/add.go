@@ -71,7 +71,7 @@ Examples:
 
         // Setup our initial list of parsers.
 
-        var asyncParsers []parsers.Parser
+        var asyncParsers []models.Parser
         var parserNames []string
         for _, parserName := range(viper.GetStringSlice("parsers.async")) {
             parser := parsers.GetParser(parserName)
@@ -80,7 +80,7 @@ Examples:
         }
         log.Debug("Added async parsers: ", parserNames)
 
-        var serialParsers []parsers.Parser
+        var serialParsers []models.Parser
         parserNames = nil
         for _, parserName := range(viper.GetStringSlice("parsers.serial")) {
             parser := parsers.GetParser(parserName)
@@ -97,9 +97,21 @@ Examples:
                     models.Input{Name: "stdin", Reader: os.Stdin})
 
             default:
-                // Unknown input type
-                log.Fatal("Input type not supported: " + inputString)
-                os.Exit(1)
+                // Assume the argument is a file; fail if it can't be opened
+                fd, err := os.Open(inputString)
+                if os.IsNotExist(err) {
+                    log.Fatal(err)
+                    os.Exit(1)
+                }
+
+                input := models.Input{Name: "stdin", Reader: fd}
+
+                // Add the parsers to the input object
+                input.Metadata = append(input.Metadata,
+                    models.MetadataItem{
+                        "filename": fd.Name(),
+                    })
+                inputs = append(inputs, input)
             }
         }
 
@@ -174,8 +186,8 @@ Examples:
 }
 
 // func metadataToJson(m ...[]models.MetadataItem){
-func inputToJson(input *models.Input, asyncParsers  *[]parsers.Parser,
-                 serialParsers *[]parsers.Parser) (jsonDoc []byte, err error) {
+func inputToJson(input *models.Input, asyncParsers  *[]models.Parser,
+                 serialParsers *[]models.Parser) (jsonDoc []byte, err error) {
 
     /*
     Return a JSON document ( []byte ) from an input, and associated parsers.
@@ -204,6 +216,19 @@ func inputToJson(input *models.Input, asyncParsers  *[]parsers.Parser,
     jmeta := models.JsonMetadata{}
 
     jmeta.Source.Name = input.Name
+
+    // Add any metadata from the input itself
+    if len(input.Metadata) > 0 {
+        metadata := models.JsonMetaItem{}
+        metadata.Parser = input.Name
+        metadata.Type = "input"
+
+        // Add per-parser metadata
+        for _, metadataItem := range(input.Metadata) {
+            metadata.Items = append(metadata.Items, metadataItem)
+        }
+        jmeta.Metadata = append(jmeta.Metadata, metadata)
+    }
 
     // Add async
     for _, parser := range(*asyncParsers) {

@@ -53,7 +53,7 @@ func (p *GzipParser) Parse(r io.Reader) (io.Reader, error) {
     }
     return buf, nil
 }
-func NewGzipParser() parsers.Parser {
+func NewGzipParser() models.Parser {
     return &GzipParser{}
 }
 
