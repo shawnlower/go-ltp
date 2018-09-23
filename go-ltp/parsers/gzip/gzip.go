@@ -10,12 +10,11 @@ import (
 	"io"
     "time"
 
-    log "github.com/sirupsen/logrus"
+    // log "github.com/sirupsen/logrus"
 )
 
 
 type GzipParser struct{
-    Name string
     Metadata []models.MetadataItem
 }
 
@@ -36,19 +35,23 @@ func (p *GzipParser) Parse(r io.Reader) (io.Reader, error) {
     gzipWriter := gzip.NewWriter(buf)
     defer gzipWriter.Close()
 
-    gzipWriter.Comment = "comment"
-    gzipWriter.Extra = []byte("extra")
-    gzipWriter.ModTime = time.Unix(1e8, 0)
-    gzipWriter.Name = "name"
+    comment := "This is a marvelous comment."
+    modtime := time.Unix(1e8, 0)
+    name := "no name"
+
+    gzipWriter.Comment = comment
+    gzipWriter.ModTime = modtime
+    gzipWriter.Name = name
 
     io.Copy(gzipWriter, r)
 
-    var meta models.MetadataItem
-    meta.Key = "gzip.comment"
-    meta.Value = fmt.Sprintf("%s", "Comment.")
+    meta := []models.MetadataItem{
+        { Key: "comment", Value: comment },
+        { Key: "modtime", Value: fmt.Sprint(modtime) },
+        { Key: "name", Value: name },
+    }
 
-    p.Metadata = append(p.Metadata, meta)
-    log.Debug(fmt.Sprintf("gzip metadata: %s", p))
+    p.Metadata = meta
 
     return buf, nil
 }

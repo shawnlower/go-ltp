@@ -23,6 +23,7 @@ import (
     "github.com/shawnlower/go-ltp/go-ltp/parsers"
     _ "github.com/shawnlower/go-ltp/go-ltp/parsers/aes"
     _ "github.com/shawnlower/go-ltp/go-ltp/parsers/counter"
+    _ "github.com/shawnlower/go-ltp/go-ltp/parsers/mimetype"
     _ "github.com/shawnlower/go-ltp/go-ltp/parsers/gzip"
     _ "github.com/shawnlower/go-ltp/go-ltp/parsers/sha256"
     _ "github.com/shawnlower/go-ltp/go-ltp/parsers/sha512"
@@ -155,6 +156,12 @@ Examples:
             // Output pipeline (disk, network, etc)
             filename := fmt.Sprintf("outfile.%d.data", idx)
             fileWriter(outReader, filename)
+
+            /*
+            We can now handle the metadata (including any output
+            meta-data, such as output filename, s3/gcs URL, etc).
+
+            */
         }
 	},
 }
