@@ -65,7 +65,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.go-ltp.yaml)")
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug logging")
     viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
-
 }
 
 // initConfig reads in config file and ENV variables if set.

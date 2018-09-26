@@ -40,6 +40,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+var dryRun bool
+
 // addCmd represents the add command
 var addCmd = &cobra.Command{
 	Use:   "add",
@@ -59,6 +61,10 @@ Examples:
     # add from a local file
     go-ltp add ~/Pictures/Jamaica_Bay.png
 `,
+    PreRun: func(cmd *cobra.Command, args []string) {
+
+        dryRun = viper.GetBool("outputs.dry-run")
+    },
 	Run: func(cmd *cobra.Command, args []string) {
 
         // Attempt to parse each of the inputs provided
@@ -105,7 +111,18 @@ Examples:
                 if os.IsNotExist(err) {
                     log.Fatal(err)
                     os.Exit(1)
+                } else if err != nil {
+                    log.Fatal(err)
+                    os.Exit(1)
                 }
+
+                // Ensure this is a file, not a directory
+                st, _ := fd.Stat()
+                if st.IsDir() {
+                    log.Fatal("Directories not yet supported.")
+                    os.Exit(1)
+                }
+
 
                 input := models.Input{Name: "file", Reader: fd}
 
@@ -272,20 +289,32 @@ func fileWriter(r io.Reader, f string) (err error) {
     }
     filename := filepath.Join(basedir, f)
 
+    if dryRun {
+        log.Info("`dry-run' specified. NOT WRITING: ", filename)
+        return nil
+    }
+
     outfile, err := os.Create(filename)
     defer outfile.Close()
 
-    if (err != nil) {
-        panic(fmt.Sprintln("Unable to create output file", filename))
+    if err != nil {
+        log.Fatal(err)
     }
-    log.Debug("Writing output to file:", filename)
-    io.Copy(outfile, r)
+
+    // Write output
+    _, err = io.Copy(outfile, r)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    log.Info("Wrote output to file:", filename)
 
     return nil
 }
 
 func init() {
+    addCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Dry-run only. DO NOT write output")
 
+    viper.BindPFlag("outputs.dry-run", addCmd.PersistentFlags().Lookup("dry-run"))
 	rootCmd.AddCommand(addCmd)
-
 }
