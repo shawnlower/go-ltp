@@ -246,6 +246,8 @@ func inputToJson(input *models.Input, asyncParsers  *[]models.Parser,
         // Add per-parser metadata
         for _, metadataItem := range(input.Metadata) {
             metadata.Items = append(metadata.Items, metadataItem)
+            log.Debug(fmt.Sprintf("meta: input.%s %#v", input.Name,
+                metadataItem))
         }
         jmeta.Metadata = append(jmeta.Metadata, metadata)
     }
@@ -259,6 +261,8 @@ func inputToJson(input *models.Input, asyncParsers  *[]models.Parser,
         // Add per-parser metadata
         for _, metadataItem := range(parser.GetMetadata()) {
             metadata.Items = append(metadata.Items, metadataItem)
+            log.Debug(fmt.Sprintf("meta: async.%s %#v", input.Name,
+                metadataItem))
         }
         jmeta.Metadata = append(jmeta.Metadata, metadata)
     }
@@ -272,6 +276,8 @@ func inputToJson(input *models.Input, asyncParsers  *[]models.Parser,
         // Add per-parser metadata
         for _, metadataItem := range(parser.GetMetadata()) {
             metadata.Items = append(metadata.Items, metadataItem)
+            log.Debug(fmt.Sprintf("meta: serial.%s %#v", input.Name,
+                metadataItem))
         }
         jmeta.Metadata = append(jmeta.Metadata, metadata)
     }
