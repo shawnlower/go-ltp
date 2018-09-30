@@ -36,6 +36,10 @@ type Pipe struct {
 
 func FanoutParsers(reader io.Reader, parsers []models.Parser) (err error) {
 
+    if len(parsers) < 1 {
+        return nil
+    }
+
     buf := make([]byte, 1024)
 
     var pipes []Pipe
@@ -84,6 +88,10 @@ func FanoutParsers(reader io.Reader, parsers []models.Parser) (err error) {
 }
 
 func SerialParsers(reader io.Reader, parsers []models.Parser) (r io.Reader, err error) {
+
+    if len(parsers) < 1 {
+        return nil, nil
+    }
 
     var r1, r2 io.Reader
 

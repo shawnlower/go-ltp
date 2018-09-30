@@ -288,10 +288,17 @@ func inputToJson(input *models.Input, asyncParsers  *[]models.Parser,
 }
 
 func fileWriter(r io.Reader, f string) (err error) {
+    if (r == nil) {
+        log.Fatal("Nothing to write (parser returned empty input?)")
+    }
     basedir := viper.GetString("outputs.file.basedir")
     if strings.HasPrefix(basedir, "~") {
         u, _ := user.Current()
         basedir = filepath.Join(u.HomeDir, basedir[1:])
+    }
+    _, err = os.Stat(basedir)
+    if err != nil {
+        log.Fatal("Path error: ", err)
     }
     filename := filepath.Join(basedir, f)
 
