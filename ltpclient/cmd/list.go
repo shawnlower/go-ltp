@@ -16,8 +16,18 @@ package cmd
 
 import (
 	"fmt"
+	"time"
+
+    pb "github.com/shawnlower/go-ltp/pb"
 
 	"github.com/spf13/cobra"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+    log "github.com/sirupsen/logrus"
+)
+
+const (
+	address     = "localhost:17900"
 )
 
 // listCmd represents the list command
@@ -32,6 +42,21 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("list called")
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+
+    c := pb.NewServerClient(conn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
+	defer cancel()
+	r, err := c.GetVersion(ctx, &pb.Empty{})
+	if err != nil {
+		log.Fatalf("Error in gRPC: %v", err)
+	}
+	log.Printf("Received via gRPC: %s", r.VersionString)
 	},
 }
 

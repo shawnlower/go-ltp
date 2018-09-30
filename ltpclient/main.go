@@ -14,7 +14,7 @@
 
 package main
 
-import "github.com/shawnlower/go-ltp/go-ltp/cmd"
+import "github.com/shawnlower/go-ltp/ltpclient/cmd"
 
 func main() {
 	cmd.Execute()

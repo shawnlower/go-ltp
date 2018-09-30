@@ -1,8 +1,8 @@
 package sha512
 
 import (
-    "github.com/shawnlower/go-ltp/go-ltp/models"
-    "github.com/shawnlower/go-ltp/go-ltp/parsers"
+    "github.com/shawnlower/go-ltp/ltpclient/models"
+    "github.com/shawnlower/go-ltp/ltpclient/parsers"
 
     "crypto/sha512"
 	"fmt"
