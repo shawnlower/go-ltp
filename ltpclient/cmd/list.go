@@ -48,7 +48,7 @@ to quickly create a Cobra application.`,
 	}
 	defer conn.Close()
 
-    c := pb.NewServerClient(conn)
+    c := pb.NewAPIClient(conn)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
 	defer cancel()
