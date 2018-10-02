@@ -15,5 +15,3 @@
 *.sw*
 outfile.*
 *.data
-ltpserver
-ltpclient
