@@ -39,12 +39,13 @@ func NewRunCommand() *cobra.Command {
         Run:  runServer,
     }
 
-    cmd.Flags().StringVar(&listenAddr, "listen-addr", "grpc://127.0.0.1:17900", "listen address")
+    cmd.Flags().String("listen-addr", "grpc://127.0.0.1:17900", "listen address")
 
     return cmd
 }
 
 func runServer(cmd *cobra.Command, args []string) {
+    listenAddr := cmd.Flags().Lookup("listen-addr").Value.String()
     fmt.Println("run called with ", args)
     ltpserver.Serve(listenAddr)
 }
