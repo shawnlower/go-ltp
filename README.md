@@ -3,6 +3,32 @@ golang CLI for LTP
 
 # Goals by version:
 
+## TODO
+
+### Oct 1-31
+
+0.0.4: Enable creation of new items/terms on remote server (Use the webs)
+    - NewItem(), ShowItem() (or similar) methods
+
+0.0.5:
+    - GCS or S3 store for objects
+
+0.0.6:
+    - Link items / objects
+
+0.0.7:
+    - Remote parsing/indexing triggered via pubsub/etc
+
+### Future
+
+- test testing
+- Enable HTTP API
+- Connect ltpweb-basic to fetch data
+- Auth (!)
+
+## DONE.
+
+### Sept 1 - Sept 30
 0.0.1: Learn basic golang syntax; make something that doesn't kill kittens
     - Parse command-line
     - Read data from stdin
@@ -19,11 +45,6 @@ golang CLI for LTP
 
 0.0.3: File support
     - ltp ./myfile.png
-    - 
-
-0.0.4: Use the webs
-    - Post meta-data
-    - Post object to HTTP endpoint
 
 # Notes by version:
 
@@ -61,7 +82,72 @@ https://github.com/docker/distribution/blob/749f6afb4572201e3c37325d0ffedb6f32be
 
 viper for configs
 
+# Notes [methods]
 
+## ADD method
+ltp add [FILE | -]
+
+0. The client reads the source data, extracts meta-data, generates a per-object key
+0. The object is uploaded to an object store
+0. The URL for the object, as well as the per-object key is stored in the database
+0. The metadata for the object is uploaded
+
+## SHOW method
+ltp show [term | id]
+
+## GET method
+
+# Notes [namespaces]
+
+## Creating a thing
+
+Better yet, let's make a place
+```
+$ ltp new -t schema:Place
+Created: http://shawnlower.net/i/home
+
+$ ltp show home
+Item: http://shawnlower.net/i/home
+Type: http://schema.org/Thing
+```
+
+See prev notes on observations.
+
+Use UUIDv1 + namespace as quad label; e.g.
+7309d2c8-5082-40d4-9d73-a81ad1ed9d14.v1.client.ltp.shawnlower.net
+
+```
+uuid, err := uuid.NewUUID()
+if err != nil {
+	log.Error("Failed to get UUID: ", err)
+}
+
+log.Debug("Got a UUID: ", uuid)
+log.Debug("uuid.ClockSequence: ", uuid.ClockSequence())
+log.Debug("uuid.Domain: ", uuid.Domain())
+log.Debug("uuid.ID: ", uuid.ID())
+log.Debug("uuid.NodeID: ", uuid.NodeID())
+log.Debug("uuid.String: ", uuid.String())
+log.Debug("uuid.Time: ", uuid.Time())
+log.Debug("uuid.URN: ", uuid.URN())
+log.Debug("uuid.Variant: ", uuid.Variant())
+log.Debug("uuid.Version: ", uuid.Version())
+```
+
+Required info:
+- Name
+- Creator/Client ID (used as label in quad/assertion)
+Optional:
+- Type (default <schema:Thing>)
+Inferred:
+
+Becomes:
+<ltp:home> <a> <schema:Place> <uuid.v1.client.ltp.shawnlower.net>
+<uuid.v1.client.ltp.shawnlower.net> [ provenance statement(s) ]
+
+# List of places:
+See first: rdf container (open/size undefined) vs rdf collection (closed/fixed-size)
+Also: schema.org/ItemList
 
 # References
 [cobra (github)]: https://github.com/spf13/cobra 
