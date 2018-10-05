@@ -5,12 +5,16 @@ import (
     "github.com/shawnlower/go-ltp/ltpclient/parsers"
 
     "errors"
-	"fmt"
     "net/http"
 	"io"
 
-    log "github.com/sirupsen/logrus"
 )
+
+// Implements a MIME-type parser, to detect the content type of
+// a file or stream.
+
+// Using net/http, the implementation of the 'sniffing' logic is
+// implemented in <https://golang.org/src/net/http/sniff.go>
 
 
 type MimetypeParser struct{
@@ -31,28 +35,27 @@ func (p *MimetypeParser) Parse(r io.Reader) (io.Reader, error) {
         return nil, errors.New("Unable to use nil input reader")
     }
 
+    // DetectContentType() uses at most 512 bytes
     buf := make([]byte, 512)
 
-    // We only need the first 512 bytes
     r.Read(buf)
+    mimetype := http.DetectContentType(buf)
 
-    // Read out the rest of the file
+    // Read to EOF so we don't block later
     for {
         _, err := r.Read(buf)
         if (err == io.EOF) {
             break
         }
     }
-    mimetype := http.DetectContentType(buf)
 
     p.Metadata = []models.MetadataItem{
         { "mime-type": mimetype },
     }
 
-    log.Debug(fmt.Sprintf("%s metadata: %s", p.GetName(), p.GetMetadata()))
-
     return r, nil
 }
+
 func NewMimetypeParser() models.Parser {
     return &MimetypeParser{}
 }
