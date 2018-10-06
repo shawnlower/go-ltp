@@ -49,6 +49,11 @@ to quickly create a Cobra application.`,
         }
         log.Debug("Log level set to debug")
     },
+    RunE: func(cmd *cobra.Command, args []string) error {
+        cmd.Flags().String("listen-addr", "grpc://127.0.0.1:17900", "listen address")
+        run.RunServer(cmd, args)
+        return nil
+    },
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -67,10 +72,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ltpserver.yaml)")
-
 	rootCmd.PersistentFlags().Bool("debug", false, "Enable debug mode")
-
-	rootCmd.AddCommand(run.NewRunCommand())
 
 }
 
