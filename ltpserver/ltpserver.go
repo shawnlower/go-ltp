@@ -5,6 +5,7 @@ import (
     "net"
     "net/url"
 
+    "github.com/shawnlower/go-ltp/ltp"
     pb "github.com/shawnlower/go-ltp/pb"
 
     log "github.com/sirupsen/logrus"
@@ -18,6 +19,24 @@ type server struct {}
 func (s *server) GetVersion(ctx context.Context, in *pb.Empty) (*pb.VersionResponse, error) {
     log.Debug(fmt.Sprintf("GetVersion called. ctx: %#v\n", ctx))
 	return &pb.VersionResponse{VersionString: "LTP Server v0.0.0"}, nil
+}
+
+func (s *server) CreateItem(ctx context.Context, in *pb.CreateItemRequest) (*pb.CreateItemResponse, error) {
+    log.Debug("CreateItem called: ", ctx)
+    u, err := url.Parse("www.google.com")
+    item, err := ltp.NewItem(u)
+    _ = item
+    err = nil
+
+    itemPb := &pb.Item{
+        URI: u.String(),
+        ItemTypes: nil,
+        Statements: nil,
+    }
+    resp := &pb.CreateItemResponse{
+        Item: itemPb,
+    }
+    return resp, err
 }
 
 func Serve(listenAddr string) {

@@ -80,3 +80,6 @@ func getGrpcClient(host string, port string) (c pb.APIClient, ctx context.Contex
     return c, ctx, nil
 
 }
+
+
+//    req := &pb.CreateItemRequest{ItemTypeURI: u.String()}

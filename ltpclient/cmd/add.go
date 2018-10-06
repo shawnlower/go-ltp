@@ -26,6 +26,8 @@ import (
     "strings"
     "sync"
 
+    pb "github.com/shawnlower/go-ltp/pb"
+    "github.com/shawnlower/go-ltp/ltpclient/client"
     "github.com/shawnlower/go-ltp/ltpclient/parsers"
     "github.com/shawnlower/go-ltp/ltpclient/models"
     _ "github.com/shawnlower/go-ltp/ltpclient/parsers/aes"
@@ -201,6 +203,9 @@ Examples:
             jsonDoc, err := inputToJson(&input, &asyncParsers, &serialParsers)
 
             fileWriter(bytes.NewReader(jsonDoc), metadatafile)
+
+            // Test rpc
+            remoteWriter(bytes.NewReader(jsonDoc), metadatafile)
         }
 	},
 }
@@ -285,6 +290,27 @@ func inputToJson(input *models.Input, asyncParsers  *[]models.Parser,
     jsonDoc, _ = json.MarshalIndent(jmeta, "", "  ")
     // log.Debug(fmt.Sprintf("***\njson: %s\n", jsonDoc))
     return jsonDoc, nil
+}
+
+func remoteWriter(r io.Reader, f string) (err error) {
+    if (r == nil) {
+        log.Fatal("Nothing to write (parser returned empty input?)")
+    }
+
+    c, ctx, err := client.GetClient()
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+
+    // First, create a new item
+    req := &pb.CreateItemRequest{}
+    resp, err := c.CreateItem(ctx, req)
+	if err != nil {
+		log.Fatalf("Error calling CreateItem: %v", err)
+	}
+	log.Printf("Received: %s", resp)
+
+    return nil
 }
 
 func fileWriter(r io.Reader, f string) (err error) {

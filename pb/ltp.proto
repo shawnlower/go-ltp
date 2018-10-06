@@ -28,10 +28,39 @@ service Health {
 }
 
 // Main server definition
+
+
 message VersionResponse {
     string VersionString = 1;
 }
 
+message Item {
+    string URI = 1;
+    repeated ItemType ItemTypes = 2;
+    repeated Statement Statements = 3;
+}
+
+message ItemType {
+    string name = 1;
+    string uri = 2;
+}
+
+message Statement {
+    string subject = 1;
+    string predicate = 2;
+    string object = 3;
+    string scope = 4;
+}
+
+message CreateItemRequest {
+    string ItemTypeURI = 1;
+}
+
+message CreateItemResponse {
+    Item item = 1;
+}
+
 service API {
     rpc GetVersion(Empty) returns (VersionResponse);
+    rpc CreateItem(CreateItemRequest) returns (CreateItemResponse);
 }

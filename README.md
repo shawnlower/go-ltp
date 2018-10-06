@@ -61,10 +61,13 @@ The [cobra (github)] package is used by kubectl, docker, openshift, and etcd
 ltp
     add [pathspec|uri|-]: add an item
     list:                 list all objects
-    get x:                get data for object 'x'
+    get x:                get data for object 'x' to a file
+    cat x:                get, but to stdout; can use alt-formats
+                          e.g. cat --format=html
     show x:               get meta-data for object 'x'
-    del x:                delete object 'x'
+    del|rm x:             delete object 'x'
     edit x:               edit object 'x' (links, etc)
+    link|ln               link items
 
 ```
 # Fetch and build cobra CLI package
