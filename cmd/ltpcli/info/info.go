@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package info
 
 import (
 	"fmt"
@@ -40,15 +40,11 @@ func NewInfoCommand() *cobra.Command {
 func infoCommand(cmd *cobra.Command, args []string) {
     fmt.Println("info called with ", args)
 
-    c, ctx, err := client.GetClient()
+    c, ctx, err := common.GetClient()
 	r, err := c.GetVersion(ctx, &pb.Empty{})
 	if err != nil {
 		log.Fatalf("Error in gRPC: %v", err)
 	}
 	log.Printf("Received via gRPC: %s", r.VersionString)
 
-}
-
-func init() {
-	rootCmd.AddCommand(NewInfoCommand())
 }

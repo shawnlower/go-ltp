@@ -16,7 +16,7 @@ clean:
 	rm -f $(BINARIES)
 
 binaries: $(BINARIES)
-	@echo "Building $@"
 
 bin/%: cmd/%
+	@echo "Building $@"
 	go build -o ./$@ ./$<

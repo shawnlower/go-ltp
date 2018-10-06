@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package list
 
 import (
 	"fmt"
@@ -39,7 +39,7 @@ func NewListCommand() *cobra.Command {
 func listCommand(cmd *cobra.Command, args []string) {
     fmt.Println("list called")
 
-    c, ctx, err := client.GetClient()
+    c, ctx, err := common.GetClient()
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -48,8 +48,4 @@ func listCommand(cmd *cobra.Command, args []string) {
 		log.Fatalf("Error calling GetVersion: %v", err)
 	}
 	log.Printf("Received: %s", r.VersionString)
-}
-
-func init() {
-	rootCmd.AddCommand(NewListCommand())
 }
