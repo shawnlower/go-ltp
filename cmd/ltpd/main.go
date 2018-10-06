@@ -12,30 +12,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package main
 
 import (
 	"fmt"
 	"os"
 
+    "github.com/shawnlower/go-ltp/cmd/ltpd/run"
+
 	homedir "github.com/mitchellh/go-homedir"
-	"github.com/spf13/cobra"
     log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
-var debug bool
+var (
+    cfgFile string
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "go-ltp",
-	Short: "golang cli for LTP",
-	Long: `Utility for persisting data to a remote store.
-    LTP store persists object data and semantic meta-data and provides
-    the ability to arbitrarily link any objects within the store`,
+	Use:   "ltpserver",
+	Short: "A brief description of your application",
+	Long: `A longer description that spans multiple lines and likely contains
+examples and usage of using your application. For example:
+
+Cobra is a CLI library for Go that empowers applications.
+This application is a tool to generate the needed files
+to quickly create a Cobra application.`,
+	// Uncomment the following line if your bare application
+	// has an action associated with it:
+	//	Run: func(cmd *cobra.Command, args []string) { },
     PersistentPreRun: func(cmd *cobra.Command, args []string) {
-        // TODO: this can't be the easiest way
         if cmd.Flag("debug").Value.String() == "true" {
             log.SetLevel(log.DebugLevel)
         }
@@ -45,7 +53,7 @@ var rootCmd = &cobra.Command{
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
+func main() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -56,15 +64,14 @@ func init() {
     // Setup logging
     log.SetOutput(os.Stdout)
     log.SetLevel(log.InfoLevel)
-
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.go-ltp.yaml)")
-	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug logging")
-    viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ltpserver.yaml)")
+
+	rootCmd.PersistentFlags().Bool("debug", false, "Enable debug mode")
+
+	rootCmd.AddCommand(run.NewRunCommand())
+
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -80,9 +87,9 @@ func initConfig() {
 			os.Exit(1)
 		}
 
-		// Search config in home directory with name ".go-ltp" (without extension).
+		// Search config in home directory with name ".ltpserver" (without extension).
 		viper.AddConfigPath(home)
-		viper.SetConfigName(".go-ltp")
+		viper.SetConfigName(".ltpserver")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
@@ -90,7 +97,5 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
-	} else {
-		fmt.Println("err", err)
-    }
+	}
 }

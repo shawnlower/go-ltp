@@ -15,6 +15,5 @@
 *.sw*
 outfile.*
 *.data
-ltpserver
-ltpclient
-app
+ltpd
+ltpcli

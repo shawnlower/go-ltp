@@ -1,8 +1,8 @@
 package gzip
 
 import (
-    "github.com/shawnlower/go-ltp/ltpclient/models"
-    "github.com/shawnlower/go-ltp/ltpclient/parsers"
+    "github.com/shawnlower/go-ltp/cmd/ltpcli/common/models"
+    "github.com/shawnlower/go-ltp/parsers"
 
     "bytes"
     "compress/gzip"

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package cmd
+package add
 
 import (
     "bytes"
@@ -27,15 +27,15 @@ import (
     "sync"
 
     pb "github.com/shawnlower/go-ltp/pb"
-    "github.com/shawnlower/go-ltp/ltpclient/client"
-    "github.com/shawnlower/go-ltp/ltpclient/parsers"
-    "github.com/shawnlower/go-ltp/ltpclient/models"
-    _ "github.com/shawnlower/go-ltp/ltpclient/parsers/aes"
-    _ "github.com/shawnlower/go-ltp/ltpclient/parsers/counter"
-    _ "github.com/shawnlower/go-ltp/ltpclient/parsers/mimetype"
-    _ "github.com/shawnlower/go-ltp/ltpclient/parsers/gzip"
-    _ "github.com/shawnlower/go-ltp/ltpclient/parsers/sha256"
-    _ "github.com/shawnlower/go-ltp/ltpclient/parsers/sha512"
+    "github.com/shawnlower/go-ltp/cmd/ltpcli/common"
+    "github.com/shawnlower/go-ltp/cmd/ltpcli/common/models"
+    "github.com/shawnlower/go-ltp/parsers"
+    _ "github.com/shawnlower/go-ltp/parsers/aes"
+    _ "github.com/shawnlower/go-ltp/parsers/counter"
+    _ "github.com/shawnlower/go-ltp/parsers/mimetype"
+    _ "github.com/shawnlower/go-ltp/parsers/gzip"
+    _ "github.com/shawnlower/go-ltp/parsers/sha256"
+    _ "github.com/shawnlower/go-ltp/parsers/sha512"
 
     log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -45,65 +45,66 @@ import (
 var dryRun bool
 
 // addCmd represents the add command
-var addCmd = &cobra.Command{
-	Use:   "add",
-	Short: "Add an item to the repository",
-    Long: `
-Add an item to the repository:
+func NewAddCommand() *cobra.Command {
+    var cmd = &cobra.Command{
+        Use:   "add",
+        Short: "Add an item to the repository",
+        Long: `
+        Add an item to the repository:
 
-New items can be created from multiple sources, such as:
-  - Local files and directories
-  - Dereferenceable URLs
-  - Standard input (pipes, etc)
+        New items can be created from multiple sources, such as:
+        - Local files and directories
+        - Dereferenceable URLs
+        - Standard input (pipes, etc)
 
-Examples:
-    # add from standard-input
-    xclip -o | go-ltp add -
+        Examples:
+        # add from standard-input
+        xclip -o | go-ltp add -
 
-    # add from a local file
-    go-ltp add ~/Pictures/Jamaica_Bay.png
-`,
-    PreRun: func(cmd *cobra.Command, args []string) {
+        # add from a local file
+        go-ltp add ~/Pictures/Jamaica_Bay.png
+        `,
+        PreRun: func(cmd *cobra.Command, args []string) {
 
-        dryRun = viper.GetBool("outputs.dry-run")
-    },
-	Run: func(cmd *cobra.Command, args []string) {
+            dryRun = viper.GetBool("outputs.dry-run")
+        },
+        Run: func(cmd *cobra.Command, args []string) {
 
-        // Attempt to parse each of the inputs provided
-        if len(args) < 1 {
-            log.Fatal("No inputs specified. Use '-' for stdin.")
-            os.Exit(1)
-        }
+            // Attempt to parse each of the inputs provided
+            if len(args) < 1 {
+                log.Fatal("No inputs specified. Use '-' for stdin.")
+                os.Exit(1)
+            }
 
-        // array for holding multiple inputs
-        var inputs []models.Input
+            // array for holding multiple inputs
+            var inputs []models.Input
 
-        // Setup our initial list of parsers.
+            // Setup our initial list of parsers.
 
-        var asyncParsers []models.Parser
-        var parserNames []string
-        for _, parserName := range(viper.GetStringSlice("parsers.async")) {
-            parser := parsers.GetParser(parserName)
-            asyncParsers = append(asyncParsers, parser)
-            parserNames = append(parserNames, parser.GetName())
-        }
-        log.Debug("Added async parsers: ", parserNames)
+            var asyncParsers []models.Parser
+            var parserNames []string
+            for _, parserName := range(viper.GetStringSlice("parsers.async")) {
+                parser := parsers.GetParser(parserName)
+                asyncParsers = append(asyncParsers, parser)
+                parserNames = append(parserNames, parser.GetName())
+            }
+            log.Debug("Added async parsers: ", parserNames)
 
-        var serialParsers []models.Parser
-        parserNames = nil
-        for _, parserName := range(viper.GetStringSlice("parsers.serial")) {
-            parser := parsers.GetParser(parserName)
-            serialParsers = append(serialParsers, parser)
-            parserNames = append(parserNames, parser.GetName())
-        }
-        log.Debug("Added serial parsers: ", parserNames)
+            var serialParsers []models.Parser
+            parserNames = nil
+            for _, parserName := range(viper.GetStringSlice("parsers.serial")) {
+                parser := parsers.GetParser(parserName)
+                serialParsers = append(serialParsers, parser)
+                parserNames = append(parserNames, parser.GetName())
+            }
+            log.Debug("Added serial parsers: ", parserNames)
 
-        for _, inputString := range args {
-            if inputString == "-" {
-                log.Info("Reading from stdin...")
-                inputs = append(inputs,
+            for _, inputString := range args {
+                if inputString == "-" {
+                    log.Info("Reading from stdin...")
+                    inputs = append(inputs,
                     models.Input{Name: "stdin", Reader: os.Stdin})
-            } else if m, _ := regexp.MatchString("https?://", inputString); m {
+                } else if m, _ := regexp.MatchString("https?://", inputString); m {
                 // Call HTTP fetch module to retrieve page
                 log.Fatal("URLs not yet supported.")
                 os.Exit(1)
@@ -130,25 +131,25 @@ Examples:
 
                 // Add the parsers to the input object
                 input.Metadata = append(input.Metadata,
-                    models.MetadataItem{
-                        "filename": fd.Name(),
-                    })
+                models.MetadataItem{
+                    "filename": fd.Name(),
+                })
                 inputs = append(inputs, input)
             }
         }
 
         /* Main loop; iterate across all of our inputs and do the following:
 
-            1) Split the input into two `io.Reader`s. The first is processed
-               as part of a fanout pipeline by FanoutParsers(), each parser
-               reading the stream and outputting metadata, such as a hash,
-               the filesystem metadata, or the OS process metadata for the
-               remote end of the stdin pipe.
-            2) The second stream is a serial pipeline, which passes the data
-               through a sequence of parsers.
-               Example:
-                 {source stream} -> {compression parser} -> {encryption parser}
-            3) Finally, the output stream and metadata are written.
+        1) Split the input into two `io.Reader`s. The first is processed
+        as part of a fanout pipeline by FanoutParsers(), each parser
+        reading the stream and outputting metadata, such as a hash,
+        the filesystem metadata, or the OS process metadata for the
+        remote end of the stdin pipe.
+        2) The second stream is a serial pipeline, which passes the data
+        through a sequence of parsers.
+        Example:
+        {source stream} -> {compression parser} -> {encryption parser}
+        3) Finally, the output stream and metadata are written.
         */
         for _, input := range(inputs) {
 
@@ -207,7 +208,13 @@ Examples:
             // Test rpc
             remoteWriter(bytes.NewReader(jsonDoc), metadatafile)
         }
-	},
+    },
+}
+
+    cmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Dry-run only. DO NOT write output")
+
+    viper.BindPFlag("outputs.dry-run", cmd.PersistentFlags().Lookup("dry-run"))
+    return cmd
 }
 
 // func metadataToJson(m ...[]models.MetadataItem){
@@ -297,7 +304,7 @@ func remoteWriter(r io.Reader, f string) (err error) {
         log.Fatal("Nothing to write (parser returned empty input?)")
     }
 
-    c, ctx, err := client.GetClient()
+    c, ctx, err := common.GetClient()
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -349,11 +356,4 @@ func fileWriter(r io.Reader, f string) (err error) {
     log.Info("Wrote output to file:", filename)
 
     return nil
-}
-
-func init() {
-    addCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Dry-run only. DO NOT write output")
-
-    viper.BindPFlag("outputs.dry-run", addCmd.PersistentFlags().Lookup("dry-run"))
-	rootCmd.AddCommand(addCmd)
 }

@@ -1,7 +1,7 @@
 package parsers
 
 import (
-    "github.com/shawnlower/go-ltp/ltpclient/models"
+    "github.com/shawnlower/go-ltp/cmd/ltpcli/common/models"
 
 	"fmt"
 	"io"

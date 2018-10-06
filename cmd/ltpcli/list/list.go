@@ -18,37 +18,38 @@ import (
 	"fmt"
 
     pb "github.com/shawnlower/go-ltp/pb"
-    "github.com/shawnlower/go-ltp/ltpclient/client"
+    "github.com/shawnlower/go-ltp/cmd/ltpcli/common"
 
 	"github.com/spf13/cobra"
     log "github.com/sirupsen/logrus"
 )
 
-func NewInfoCommand() *cobra.Command {
+// listCmd represents the list command
+func NewListCommand() *cobra.Command {
     cmd := &cobra.Command{
-        Use:   "info",
-        Short: "Display client/server info",
-        Long: `Provide information about both the local environment,
-    as well as the remote server information, such as server version,
-    number of objects, and overall health.`,
-        Run:  infoCommand,
+        Use:   "list",
+        Short: "List remote objects",
+        Long: `List the objects available in the remote store.`,
+        Run: listCommand,
     }
 
     return cmd
 }
 
-func infoCommand(cmd *cobra.Command, args []string) {
-    fmt.Println("info called with ", args)
+func listCommand(cmd *cobra.Command, args []string) {
+    fmt.Println("list called")
 
     c, ctx, err := client.GetClient()
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
 	r, err := c.GetVersion(ctx, &pb.Empty{})
 	if err != nil {
-		log.Fatalf("Error in gRPC: %v", err)
+		log.Fatalf("Error calling GetVersion: %v", err)
 	}
-	log.Printf("Received via gRPC: %s", r.VersionString)
-
+	log.Printf("Received: %s", r.VersionString)
 }
 
 func init() {
-	rootCmd.AddCommand(NewInfoCommand())
+	rootCmd.AddCommand(NewListCommand())
 }
