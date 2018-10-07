@@ -47,16 +47,9 @@ func NewCreateCommand() *cobra.Command {
 
 			typeUri, err := cmd.Flags().GetString("type")
 
-            url, err := api.ValidateTypeUri(typeUri)
-            if err != nil {
-                log.Fatalf("Unable to validate type of item: %s. Expected a url, e.g. http://schema.org/Book")
-            }
-
-			itemTypes := []*api.ItemType{}
-			itemTypes = append(itemTypes, &api.ItemType{Uri: typeUri})
-
-			req := &api.CreateItemRequest{
-				ItemTypes: itemTypes,
+            req, err := api.NewItemRequest(typeUri)
+			if err != nil {
+                log.Fatalf("Error creating ItemRequest: %v", err)
 			}
 
 			resp, err := c.CreateItem(ctx, req)

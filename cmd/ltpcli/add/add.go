@@ -312,14 +312,13 @@ func remoteWriter(r io.Reader, f string) (err error) {
 		ItemTypeURI string
 	}
 
-	item, err := api.NewItem("http://schema.org/Thing")
-
-	req := &api.CreateItemRequest{
-		ItemTypes: item.GetItemTypes(),
-	}
+    req, err := api.NewItemRequest("http://schema.org/Thing")
+    if err != nil {
+		log.Fatalf("Error calling CreateItemRequest: %v", err)
+    }
 
 	resp, err := c.CreateItem(ctx, req)
-	if err != nil {
+    if err != nil {
 		log.Fatalf("Error calling CreateItem: %v", err)
 	}
 	log.Printf("Received: %s", resp)

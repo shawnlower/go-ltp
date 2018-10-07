@@ -2,14 +2,17 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
     "regexp"
 	"time"
 )
 
-// Creates a new item of the type specified. One or more properties may also
-// be specified.
+// Returns a new item object of the type specified.
+//
+// Used by the CreateItem implementation, or anywhere that the Item model
+// is used. Does not assign a URL, or commit to the store.
 func NewItem(itemTypeStr string) (i *Item, e error) {
 	// return Item{}, ErrUnimplemented
 	itemType := ItemType{
@@ -23,6 +26,24 @@ func NewItem(itemTypeStr string) (i *Item, e error) {
 	}
 
 	return item, nil
+}
+
+func NewItemRequest(itemTypeStr string) (*CreateItemRequest, error) {
+
+    var itemTypes []*ItemType
+
+    uri, err := NormalizeUri(itemTypeStr)
+    if err != nil {
+        return nil, errors.New("Unable to validate type of item: %s. Expected a url, e.g. http://schema.org/Book")
+    }
+
+    itemTypes = append(itemTypes, &ItemType{Uri: uri.String()})
+
+    req := &CreateItemRequest{
+        ItemTypes: itemTypes,
+    }
+
+    return req, nil
 }
 
 // Creates a new statement of the type specified

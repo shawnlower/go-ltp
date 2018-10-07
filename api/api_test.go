@@ -51,3 +51,15 @@ func TestNormalizeUri(t *testing.T) {
 		}
 	}
 }
+
+func TestNewItemRequest(t *testing.T) {
+    _, err := NewItemRequest("schema:Book")
+    if err != nil {
+        t.Fatal(err)
+    }
+
+    _, err = NewItemRequest("")
+    if err == nil {
+        t.Fatal("Empty NewItemRequest should fail.")
+    }
+}
