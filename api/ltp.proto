@@ -5,6 +5,8 @@ syntax = "proto3";
 
 package api;
 
+import "google/protobuf/timestamp.proto";
+
 message Empty {}
 
 // Health check per docs at
@@ -44,11 +46,26 @@ message ItemType {
     string Uri = 1;
 }
 
+// A semantic 'statement' about the world. Can generally be viewed as
+// an RDF triple, with an additional 'Scope', used for provenance.
+// This can be implemented as a named graph, where the graph name (or label)
+// is used for this purpose.
+//
+// See also:
+// <http://patterns.dataincubator.org/book/named-graphs.html>
 message Statement {
     string subject = 1;
     string predicate = 2;
     string object = 3;
-    string scope = 4;
+    Scope scope = 4;
+}
+
+// The scope bounds the set of statements or assertions being made by
+// an agent.
+// Example: scope := &Scope{Time.now(), "ltp_client.shawnlower.net", nil}
+message Scope {
+    string agent = 1;
+    google.protobuf.Timestamp assertionTime = 2;
 }
 
 message CreateItemRequest {
