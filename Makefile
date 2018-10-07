@@ -1,7 +1,7 @@
 COMMANDS=ltpcli ltpd
 BINARIES=$(addprefix bin/,$(COMMANDS))
 
-src = $(wildcard pb/*.proto)
+src = $(wildcard api/*.proto)
 obj = $(src:.go=.pb.go)
 
 all: proto binaries

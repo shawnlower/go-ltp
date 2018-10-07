@@ -6,38 +6,18 @@ import (
     "net/url"
     "time"
 
-    pb "github.com/shawnlower/go-ltp/pb"
 )
 
-// An 'Item', one of the basic types LTP uses to describe the world.
-// To be valid, an Item need only contain a unique identifier in the form of
-// a URI and 
-type Item struct {
-    uri string
-    itemTypes []*ItemType
-    statements []Statement
-}
-
-type ItemType struct {
-    Uri string
-}
-
 // Creates a new item of the type specified. One or more properties may also
 // be specified.
-func (i Item) GetItemTypes() []*ItemType {
-    return i.itemTypes
-}
-
-// Creates a new item of the type specified. One or more properties may also
-// be specified.
-func NewItem(itemTypeStr string) (i *pb.Item, e error) {
+func NewItem(itemTypeStr string) (i *Item, e error) {
     // return Item{}, ErrUnimplemented
-    itemType := pb.ItemType{
+    itemType := ItemType{
         Uri: itemTypeStr,
     }
-    itemTypes := []*pb.ItemType{&itemType}
+    itemTypes := []*ItemType{&itemType}
 
-    item := &pb.Item{
+    item := &Item{
         Uri: "",
         ItemTypes: itemTypes,
     }
@@ -52,22 +32,22 @@ func NewItem(itemTypeStr string) (i *pb.Item, e error) {
 //
 // See also:
 // <http://patterns.dataincubator.org/book/named-graphs.html>
-type Statement struct {
-    Subject url.URL
-    Predicate url.URL
-    Object url.URL
-    Scope Scope
-}
+// type Statement struct {
+//    Subject url.URL
+//    Predicate url.URL
+//    Object url.URL
+//    Scope Scope
+//}
 
 // Creates a new statement of the type specified
-func NewStatement(s url.URL, p url.URL, o url.URL, c Scope) (i *Statement, e error) {
-    return &Statement{
-        Subject: s,
-        Predicate: p,
-        Object: o,
-        Scope: c,
-    }, nil
-}
+//func NewStatement(s url.URL, p url.URL, o url.URL, c Scope) (i *Statement, e error) {
+//    return &Statement{
+//        Subject: s,
+//        Predicate: p,
+//        Object: o,
+//        Scope: c,
+//    }, nil
+//}
 
 // The scope bounds the set of statements or assertions being made by
 // an agent.

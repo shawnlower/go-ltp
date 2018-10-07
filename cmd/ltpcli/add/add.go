@@ -26,7 +26,6 @@ import (
     "strings"
     "sync"
 
-    pb "github.com/shawnlower/go-ltp/pb"
     "github.com/shawnlower/go-ltp/api"
     "github.com/shawnlower/go-ltp/cmd/ltpcli/common"
     "github.com/shawnlower/go-ltp/cmd/ltpcli/common/models"
@@ -317,7 +316,7 @@ func remoteWriter(r io.Reader, f string) (err error) {
     item, err := api.NewItem("http://schema.org/Thing")
     _ = item
 
-    req := &pb.CreateItemRequest{
+    req := &api.CreateItemRequest{
         ItemTypes: item.GetItemTypes(),
     }
 

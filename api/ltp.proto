@@ -3,7 +3,7 @@ syntax = "proto3";
 // Compile w/ e.g.:
 // $ protoc ltp.proto --go_out=plugins=grpc:.
 
-package ltpserver;
+package api;
 
 message Empty {}
 

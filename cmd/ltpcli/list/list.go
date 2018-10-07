@@ -17,7 +17,7 @@ package list
 import (
 	"fmt"
 
-    pb "github.com/shawnlower/go-ltp/pb"
+    "github.com/shawnlower/go-ltp/api"
     "github.com/shawnlower/go-ltp/cmd/ltpcli/common"
 
 	"github.com/spf13/cobra"
@@ -43,7 +43,7 @@ func listCommand(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
-	r, err := c.GetVersion(ctx, &pb.Empty{})
+	r, err := c.GetVersion(ctx, &api.Empty{})
 	if err != nil {
 		log.Fatalf("Error calling GetVersion: %v", err)
 	}

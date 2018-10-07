@@ -19,7 +19,7 @@ import (
 	"time"
     "net/url"
 
-    pb "github.com/shawnlower/go-ltp/pb"
+    "github.com/shawnlower/go-ltp/api"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -31,7 +31,7 @@ const (
 )
 
 
-func GetClient() (c pb.APIClient, ctx context.Context, err error) {
+func GetClient() (c api.APIClient, ctx context.Context, err error) {
 
     var (
         host string
@@ -61,7 +61,7 @@ func GetClient() (c pb.APIClient, ctx context.Context, err error) {
 
 }
 
-func getGrpcClient(host string, port string) (c pb.APIClient, ctx context.Context, err error) {
+func getGrpcClient(host string, port string) (c api.APIClient, ctx context.Context, err error) {
 
     var (
         address string
@@ -73,13 +73,10 @@ func getGrpcClient(host string, port string) (c pb.APIClient, ctx context.Contex
 		log.Fatalf("did not connect: %v", err)
 	}
 
-    c = pb.NewAPIClient(conn)
+    c = api.NewAPIClient(conn)
 
 	ctx, _ = context.WithTimeout(context.Background(), 3 * time.Second)
 
     return c, ctx, nil
 
 }
-
-
-//    req := &pb.CreateItemRequest{ItemTypeURI: u.String()}
