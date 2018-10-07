@@ -27,6 +27,7 @@ import (
     "sync"
 
     pb "github.com/shawnlower/go-ltp/pb"
+    "github.com/shawnlower/go-ltp/api"
     "github.com/shawnlower/go-ltp/cmd/ltpcli/common"
     "github.com/shawnlower/go-ltp/cmd/ltpcli/common/models"
     "github.com/shawnlower/go-ltp/parsers"
@@ -309,8 +310,17 @@ func remoteWriter(r io.Reader, f string) (err error) {
 		log.Fatalf("did not connect: %v", err)
 	}
 
-    // First, create a new item
-    req := &pb.CreateItemRequest{}
+    type Item struct {
+        ItemTypeURI string;
+    }
+
+    item, err := api.NewItem("http://schema.org/Thing")
+    _ = item
+
+    req := &pb.CreateItemRequest{
+        ItemTypes: item.GetItemTypes(),
+    }
+
     resp, err := c.CreateItem(ctx, req)
 	if err != nil {
 		log.Fatalf("Error calling CreateItem: %v", err)

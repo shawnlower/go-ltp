@@ -1,25 +1,48 @@
-package ltp
+package api
 
 import (
 	"encoding/json"
     "fmt"
     "net/url"
     "time"
+
+    pb "github.com/shawnlower/go-ltp/pb"
 )
 
 // An 'Item', one of the basic types LTP uses to describe the world.
 // To be valid, an Item need only contain a unique identifier in the form of
 // a URI and 
 type Item struct {
-    uri url.URL
-    types []url.URL
+    uri string
+    itemTypes []*ItemType
     statements []Statement
+}
+
+type ItemType struct {
+    Uri string
 }
 
 // Creates a new item of the type specified. One or more properties may also
 // be specified.
-func NewItem(itemType *url.URL) (i Item, e error) {
-    return Item{}, ErrUnimplemented
+func (i Item) GetItemTypes() []*ItemType {
+    return i.itemTypes
+}
+
+// Creates a new item of the type specified. One or more properties may also
+// be specified.
+func NewItem(itemTypeStr string) (i *pb.Item, e error) {
+    // return Item{}, ErrUnimplemented
+    itemType := pb.ItemType{
+        Uri: itemTypeStr,
+    }
+    itemTypes := []*pb.ItemType{&itemType}
+
+    item := &pb.Item{
+        Uri: "",
+        ItemTypes: itemTypes,
+    }
+
+    return item, nil
 }
 
 // A semantic 'statement' about the world. Can generally be viewed as

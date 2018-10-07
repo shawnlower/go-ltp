@@ -116,7 +116,7 @@ Type: http://schema.org/Thing
 
 See prev notes on observations.
 
-Use UUIDv1 + namespace as quad label; e.g.
+Use UUIDv1 + namespace as the quad's label; e.g.
 7309d2c8-5082-40d4-9d73-a81ad1ed9d14.v1.client.ltp.shawnlower.net
 
 ```

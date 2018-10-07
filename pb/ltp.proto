@@ -35,14 +35,13 @@ message VersionResponse {
 }
 
 message Item {
-    string URI = 1;
+    string Uri = 1;
     repeated ItemType ItemTypes = 2;
     repeated Statement Statements = 3;
 }
 
 message ItemType {
-    string name = 1;
-    string uri = 2;
+    string Uri = 1;
 }
 
 message Statement {
@@ -53,7 +52,7 @@ message Statement {
 }
 
 message CreateItemRequest {
-    string ItemTypeURI = 1;
+    repeated ItemType ItemTypes = 1;
 }
 
 message CreateItemResponse {

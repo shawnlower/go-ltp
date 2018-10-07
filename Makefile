@@ -1,13 +1,20 @@
 COMMANDS=ltpcli ltpd
 BINARIES=$(addprefix bin/,$(COMMANDS))
 
-all: binaries
+src = $(wildcard pb/*.proto)
+obj = $(src:.go=.pb.go)
+
+all: proto binaries
 
 build:
 	go build
 
 install:
 	go install
+
+proto: $(obj)
+	@echo "Rebuilding protobuf stubs"
+	@protoc $< --go_out=plugins=grpc:.
 
 test:
 	go test

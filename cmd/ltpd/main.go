@@ -73,6 +73,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ltpserver.yaml)")
 	rootCmd.PersistentFlags().Bool("debug", false, "Enable debug mode")
+	rootCmd.PersistentFlags().Bool("foreground", false, "Run in foreground (default when debug enabled)")
 
 }
 

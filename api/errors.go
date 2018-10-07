@@ -1,4 +1,4 @@
-package ltp
+package api
 
 import (
     "errors"
@@ -6,4 +6,5 @@ import (
 
 var (
     ErrUnimplemented = errors.New("Unimplemented.")
+    ErrInvalidItem = errors.New("Invalid Item")
 )
