@@ -17,18 +17,18 @@ package run
 import (
 	"fmt"
 
-    "github.com/shawnlower/go-ltp/cmd/ltpd/common/server"
+	"github.com/shawnlower/go-ltp/cmd/ltpd/common/server"
 
 	"github.com/spf13/cobra"
 )
 
 var (
-    listenAddr string
+	listenAddr string
 )
 
 func RunServer(cmd *cobra.Command, args []string) error {
-    listenAddr := cmd.Flags().Lookup("listen-addr").Value.String()
-    fmt.Println("run called with ", args)
-    server.Serve(listenAddr)
-    return nil // TODO: Get proper return code
+	listenAddr := cmd.Flags().Lookup("listen-addr").Value.String()
+	fmt.Println("run called with ", args)
+	server.Serve(listenAddr)
+	return nil // TODO: Get proper return code
 }

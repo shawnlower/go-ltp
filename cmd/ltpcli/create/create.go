@@ -15,60 +15,60 @@
 package create
 
 import (
-    "github.com/shawnlower/go-ltp/api"
-    "github.com/shawnlower/go-ltp/cmd/ltpcli/common"
+	"github.com/shawnlower/go-ltp/api"
+	"github.com/shawnlower/go-ltp/cmd/ltpcli/common"
 
-    log "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 const (
-    DEFAULT_TYPE = "http://schema.org/Thing"
+	DEFAULT_TYPE = "http://schema.org/Thing"
 )
 
 // createCmd represents the create command
 func NewCreateCommand() *cobra.Command {
-    var cmd = &cobra.Command{
-        Use:   "create",
-        Short: "Create an item in the repository",
-        Long: `
+	var cmd = &cobra.Command{
+		Use:   "create",
+		Short: "Create an item in the repository",
+		Long: `
         Create a new item - without uploading an object.
 
         Example:
             $ ltpcli create -t 'http://schema.org/Book' -n 'Sapiens'
             Created http://shawnlower.net/i/Sapiens
         `,
-        Run: func(cmd *cobra.Command, args []string) {
+		Run: func(cmd *cobra.Command, args []string) {
 
-            c, ctx, err := common.GetClient()
-            if err != nil {
-                log.Fatalf("did not connect: %v", err)
-            }
+			c, ctx, err := common.GetClient()
+			if err != nil {
+				log.Fatalf("did not connect: %v", err)
+			}
 
-            type Item struct {
-                ItemTypeURI string;
-            }
+			type Item struct {
+				ItemTypeURI string
+			}
 
-            typeUri, err := cmd.Flags().GetString("type")
+			typeUri, err := cmd.Flags().GetString("type")
 
-            itemTypes := []*api.ItemType{ }
-            itemTypes = append(itemTypes, &api.ItemType{ Uri: typeUri, })
+			itemTypes := []*api.ItemType{}
+			itemTypes = append(itemTypes, &api.ItemType{Uri: typeUri})
 
-            req := &api.CreateItemRequest{
-                ItemTypes: itemTypes,
-            }
+			req := &api.CreateItemRequest{
+				ItemTypes: itemTypes,
+			}
 
-            resp, err := c.CreateItem(ctx, req)
-            if err != nil {
-                log.Fatalf("Error calling CreateItem: %v", err)
-            }
-            log.Printf("Received: %s", resp)
-        },
-    }
+			resp, err := c.CreateItem(ctx, req)
+			if err != nil {
+				log.Fatalf("Error calling CreateItem: %v", err)
+			}
+			log.Printf("Received: %s", resp)
+		},
+	}
 
-    cmd.PersistentFlags().String("type", DEFAULT_TYPE,
-        "Type of item to create. Default: " + DEFAULT_TYPE)
-    cmd.MarkFlagRequired("type")
+	cmd.PersistentFlags().String("type", DEFAULT_TYPE,
+		"Type of item to create. Default: "+DEFAULT_TYPE)
+	cmd.MarkFlagRequired("type")
 
-    return cmd
+	return cmd
 }

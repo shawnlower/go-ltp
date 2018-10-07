@@ -2,27 +2,26 @@ package api
 
 import (
 	"encoding/json"
-    "fmt"
-    "net/url"
-    "time"
-
+	"fmt"
+	"net/url"
+	"time"
 )
 
 // Creates a new item of the type specified. One or more properties may also
 // be specified.
 func NewItem(itemTypeStr string) (i *Item, e error) {
-    // return Item{}, ErrUnimplemented
-    itemType := ItemType{
-        Uri: itemTypeStr,
-    }
-    itemTypes := []*ItemType{&itemType}
+	// return Item{}, ErrUnimplemented
+	itemType := ItemType{
+		Uri: itemTypeStr,
+	}
+	itemTypes := []*ItemType{&itemType}
 
-    item := &Item{
-        Uri: "",
-        ItemTypes: itemTypes,
-    }
+	item := &Item{
+		Uri:       "",
+		ItemTypes: itemTypes,
+	}
 
-    return item, nil
+	return item, nil
 }
 
 // A semantic 'statement' about the world. Can generally be viewed as
@@ -53,31 +52,30 @@ func NewItem(itemTypeStr string) (i *Item, e error) {
 // an agent.
 // Example: scope := &Scope{Time.now(), "ltp_client.shawnlower.net", nil}
 type Scope struct {
-    AssertionTime time.Time
-    Agent url.URL
-    onBehalfOf url.URL
+	AssertionTime time.Time
+	Agent         url.URL
+	onBehalfOf    url.URL
 }
 
 // Returns the scope as a URI.
 // The URI does not contain all attributes of a scope.
 // To serialize an entire scope object, use the GetScopeJson() method
 func (s Scope) GetScopeURI() (uri *url.URL, err error) {
-    url, err := url.Parse(fmt.Sprintf("%s.%s",
-        s.Agent.String(), s.AssertionTime.String()))
+	url, err := url.Parse(fmt.Sprintf("%s.%s",
+		s.Agent.String(), s.AssertionTime.String()))
 
-    return url, err
+	return url, err
 }
 
 // Returns the scope as a JSON decoder
 func (s Scope) GetScopeJSON() (json *json.Decoder, err error) {
-    return nil, ErrUnimplemented
+	return nil, ErrUnimplemented
 }
 
 // An activity is used to group the items currently being viewed or interacted
 // with by the user, in the completion of a task. Synonymous with 'workspace'
 type Activity struct {
-    items []Item
-    created time.Time
-    updated time.Time
+	items   []Item
+	created time.Time
+	updated time.Time
 }
-

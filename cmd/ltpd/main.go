@@ -18,16 +18,16 @@ import (
 	"fmt"
 	"os"
 
-    "github.com/shawnlower/go-ltp/cmd/ltpd/run"
+	"github.com/shawnlower/go-ltp/cmd/ltpd/run"
 
 	homedir "github.com/mitchellh/go-homedir"
-    log "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
 var (
-    cfgFile string
+	cfgFile string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -43,17 +43,17 @@ to quickly create a Cobra application.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	//	Run: func(cmd *cobra.Command, args []string) { },
-    PersistentPreRun: func(cmd *cobra.Command, args []string) {
-        if cmd.Flag("debug").Value.String() == "true" {
-            log.SetLevel(log.DebugLevel)
-        }
-        log.Debug("Log level set to debug")
-    },
-    RunE: func(cmd *cobra.Command, args []string) error {
-        cmd.Flags().String("listen-addr", "grpc://127.0.0.1:17900", "listen address")
-        run.RunServer(cmd, args)
-        return nil
-    },
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if cmd.Flag("debug").Value.String() == "true" {
+			log.SetLevel(log.DebugLevel)
+		}
+		log.Debug("Log level set to debug")
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cmd.Flags().String("listen-addr", "grpc://127.0.0.1:17900", "listen address")
+		run.RunServer(cmd, args)
+		return nil
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -66,9 +66,9 @@ func main() {
 }
 
 func init() {
-    // Setup logging
-    log.SetOutput(os.Stdout)
-    log.SetLevel(log.InfoLevel)
+	// Setup logging
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.InfoLevel)
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ltpserver.yaml)")

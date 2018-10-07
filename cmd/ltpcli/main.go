@@ -18,17 +18,16 @@ import (
 	"fmt"
 	"os"
 
-    "github.com/shawnlower/go-ltp/cmd/ltpcli/add"
-    "github.com/shawnlower/go-ltp/cmd/ltpcli/create"
-    "github.com/shawnlower/go-ltp/cmd/ltpcli/info"
-    "github.com/shawnlower/go-ltp/cmd/ltpcli/list"
+	"github.com/shawnlower/go-ltp/cmd/ltpcli/add"
+	"github.com/shawnlower/go-ltp/cmd/ltpcli/create"
+	"github.com/shawnlower/go-ltp/cmd/ltpcli/info"
+	"github.com/shawnlower/go-ltp/cmd/ltpcli/list"
 
 	homedir "github.com/mitchellh/go-homedir"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-    log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
-
 
 func main() {
 	if err := rootCmd.Execute(); err != nil {
@@ -47,19 +46,19 @@ var rootCmd = &cobra.Command{
 	Long: `Utility for persisting data to a remote store.
     LTP store persists object data and semantic meta-data and provides
     the ability to arbitrarily link any objects within the store`,
-    PersistentPreRun: func(cmd *cobra.Command, args []string) {
-        // TODO: this can't be the easiest way
-        if cmd.Flag("debug").Value.String() == "true" {
-            log.SetLevel(log.DebugLevel)
-        }
-        log.Debug("Log level set to debug")
-    },
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		// TODO: this can't be the easiest way
+		if cmd.Flag("debug").Value.String() == "true" {
+			log.SetLevel(log.DebugLevel)
+		}
+		log.Debug("Log level set to debug")
+	},
 }
 
 func init() {
-    // Setup logging
-    log.SetOutput(os.Stdout)
-    log.SetLevel(log.InfoLevel)
+	// Setup logging
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.InfoLevel)
 
 	cobra.OnInitialize(initConfig)
 
@@ -68,7 +67,7 @@ func init() {
 	// will be global for your application.
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.go-ltp.yaml)")
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug logging")
-    viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
+	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 
 	rootCmd.AddCommand(add.NewAddCommand())
 	rootCmd.AddCommand(info.NewInfoCommand())
@@ -101,5 +100,5 @@ func initConfig() {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	} else {
 		fmt.Println("err", err)
-    }
+	}
 }

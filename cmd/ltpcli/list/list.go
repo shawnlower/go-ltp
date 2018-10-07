@@ -17,29 +17,29 @@ package list
 import (
 	"fmt"
 
-    "github.com/shawnlower/go-ltp/api"
-    "github.com/shawnlower/go-ltp/cmd/ltpcli/common"
+	"github.com/shawnlower/go-ltp/api"
+	"github.com/shawnlower/go-ltp/cmd/ltpcli/common"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-    log "github.com/sirupsen/logrus"
 )
 
 // listCmd represents the list command
 func NewListCommand() *cobra.Command {
-    cmd := &cobra.Command{
-        Use:   "list",
-        Short: "List remote objects",
-        Long: `List the objects available in the remote store.`,
-        Run: listCommand,
-    }
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List remote objects",
+		Long:  `List the objects available in the remote store.`,
+		Run:   listCommand,
+	}
 
-    return cmd
+	return cmd
 }
 
 func listCommand(cmd *cobra.Command, args []string) {
-    fmt.Println("list called")
+	fmt.Println("list called")
 
-    c, ctx, err := common.GetClient()
+	c, ctx, err := common.GetClient()
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}

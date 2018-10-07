@@ -1,13 +1,13 @@
 package models
 
 import (
-    "io"
+	"io"
 )
 
 type Input struct {
-    Name string
-    Reader io.Reader
-    Metadata []MetadataItem
+	Name     string
+	Reader   io.Reader
+	Metadata []MetadataItem
 }
 
 type MetadataItem map[string]string
@@ -20,14 +20,13 @@ type JsonMetadata struct {
 }
 
 type JsonMetaItem struct {
-    Parser string `json:"parser"`
-    Type   string `json:"type"`
-    Items  []MetadataItem `json:"items"`
+	Parser string         `json:"parser"`
+	Type   string         `json:"type"`
+	Items  []MetadataItem `json:"items"`
 }
 
 type Parser interface {
-    Parse(r io.Reader) (io.Reader, error)
-    GetName() string
-    GetMetadata() []MetadataItem
+	Parse(r io.Reader) (io.Reader, error)
+	GetName() string
+	GetMetadata() []MetadataItem
 }
-
