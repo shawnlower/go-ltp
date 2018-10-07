@@ -314,7 +314,6 @@ func remoteWriter(r io.Reader, f string) (err error) {
     }
 
     item, err := api.NewItem("http://schema.org/Thing")
-    _ = item
 
     req := &api.CreateItemRequest{
         ItemTypes: item.GetItemTypes(),

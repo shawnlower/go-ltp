@@ -1,0 +1,13 @@
+debug = true
+
+[parsers]
+async = ["COUNTER", "SHA512", "SHA256", "MIMETYPE"]
+serial = ["GZIP", "AES"]
+output = ["FILE"]
+
+[parsers.aes]
+# Key must be specified as a string; TOML values are limited to 64 bits
+key = "0x89234957191234120341023840128356280089923952345ffff917241a987123"
+
+[outputs.file]
+basedir = "~/data"
