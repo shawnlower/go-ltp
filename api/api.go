@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+    "regexp"
 	"time"
 )
 
@@ -24,47 +25,87 @@ func NewItem(itemTypeStr string) (i *Item, e error) {
 	return item, nil
 }
 
-// A semantic 'statement' about the world. Can generally be viewed as
-// an RDF triple, with an additional 'Scope', used for provenance.
-// This can be implemented as a named graph, where the graph name (or label)
-// is used for this purpose.
-//
-// See also:
-// <http://patterns.dataincubator.org/book/named-graphs.html>
-// type Statement struct {
-//    Subject url.URL
-//    Predicate url.URL
-//    Object url.URL
-//    Scope Scope
-//}
-
 // Creates a new statement of the type specified
-//func NewStatement(s url.URL, p url.URL, o url.URL, c Scope) (i *Statement, e error) {
-//    return &Statement{
-//        Subject: s,
-//        Predicate: p,
-//        Object: o,
-//        Scope: c,
-//    }, nil
-//}
+func NewStatement(s string, p string, o string, c *Scope) (i *Statement, e error) {
+    return &Statement{
+        Subject: s,
+        Predicate: p,
+        Object: o,
+        Scope: c,
+    }, nil
+}
 
-// The scope bounds the set of statements or assertions being made by
-// an agent.
-// Example: scope := &Scope{Time.now(), "ltp_client.shawnlower.net", nil}
-type Scope struct {
-	AssertionTime time.Time
-	Agent         url.URL
-	onBehalfOf    url.URL
+
+// Ensure that a URL is valid, returning it as a url.URL object
+//
+// Normalization also performs the following:
+//  - Expansion of Compact URIs (CURIEs)
+//    Both '<schema:Book>' and 'schema:Book' are permitted
+//    The list of namespace prefixes supported can be retrieved via
+//    GetNamespacePrefixes() (or ltpcli list namespaces)
+//    See: https://lov.linkeddata.es/dataset/lov/
+func NormalizeUri(uriString string) (*url.URL, error) {
+
+    var re *regexp.Regexp
+    var err error
+
+    // Extract the substring of a bracketed <url>, if necessary
+    // when the URL matches http/https prefix
+    re, err = regexp.Compile("^<?(https?://.*)>?$")
+	if err != nil {
+		return nil, err
+	}
+    if m := re.FindStringSubmatch(uriString); len(m) > 1 {
+        // We have a URI
+        return url.Parse(m[1]) // Return the parsed url, or the error
+    }
+
+    // Try for a CURIE
+    uri, err := ExpandCurie(uriString)
+    if err != nil {
+        return nil, err
+    } else {
+        return uri, nil
+    }
+}
+
+// Expandeds a CURIE (e.g. <schema:Person> or foaf:name) into a
+// qualified name, e.g. https://schema.org/Person
+func ExpandCurie(curieString string) (*url.URL, error) {
+
+    // Regex splits input into 3 groups:
+    // 0: Left-most match
+    // 1: Prefix e.g. `schema'
+    // 2: Suffix e.g. `Person'
+    re, err := regexp.Compile("^<?([^. <>]+):([^>]+)>?$")
+	if err != nil {
+		return nil, err
+	}
+    if m := re.FindStringSubmatch(curieString); len(m) == 3 {
+        // We have a CURIE
+        prefix := m[1]
+        suffix := m[2]
+        uriPrefixes := map[string]string{
+            "schema": "https://schema.org/",
+        }
+        ns := uriPrefixes[prefix]
+        if prefix != "" {
+            return url.Parse(fmt.Sprintf("%s%s", ns, suffix))
+        } else {
+            return nil, ErrInvalidUri
+        }
+    }
+
+    return nil, ErrUnimplemented
 }
 
 // Returns the scope as a URI.
 // The URI does not contain all attributes of a scope.
 // To serialize an entire scope object, use the GetScopeJson() method
-func (s Scope) GetScopeURI() (uri *url.URL, err error) {
-	url, err := url.Parse(fmt.Sprintf("%s.%s",
-		s.Agent.String(), s.AssertionTime.String()))
+func (s Scope) GetScopeURI() (uri string, err error) {
+	url := fmt.Sprintf("%s.%s", s.Agent, s.AssertionTime.String())
 
-	return url, err
+	return url, nil
 }
 
 // Returns the scope as a JSON decoder

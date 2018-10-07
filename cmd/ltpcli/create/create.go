@@ -45,11 +45,12 @@ func NewCreateCommand() *cobra.Command {
 				log.Fatalf("did not connect: %v", err)
 			}
 
-			type Item struct {
-				ItemTypeURI string
-			}
-
 			typeUri, err := cmd.Flags().GetString("type")
+
+            url, err := api.ValidateTypeUri(typeUri)
+            if err != nil {
+                log.Fatalf("Unable to validate type of item: %s. Expected a url, e.g. http://schema.org/Book")
+            }
 
 			itemTypes := []*api.ItemType{}
 			itemTypes = append(itemTypes, &api.ItemType{Uri: typeUri})
