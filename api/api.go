@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+const (
+	DEFAULT_ITEM_TYPE = "http://schema.org/Thing"
+)
+
 // Returns a new item object of the type specified.
 //
 // Used by the CreateItem implementation, or anywhere that the Item model
@@ -30,14 +34,19 @@ func NewItem(itemTypeStr string) (i *Item, e error) {
 
 func NewItemRequest(itemTypeStr string) (*CreateItemRequest, error) {
 
-    var itemTypes []*ItemType
-
-    uri, err := NormalizeUri(itemTypeStr)
-    if err != nil {
-        return nil, errors.New("Unable to validate type of item: %s. Expected a url, e.g. http://schema.org/Book")
+    if itemTypeStr == "" {
+        return nil, errors.New("NewItemRequest called with empty type string.")
     }
 
-    itemTypes = append(itemTypes, &ItemType{Uri: uri.String()})
+    var itemTypes []*ItemType
+    if itemTypeStr != "" {
+        uri, err := NormalizeUri(itemTypeStr)
+        if err != nil {
+            return nil, errors.New(
+                fmt.Sprintf("Unable to validate type of item: `%s'. Expected a url, e.g. http://schema.org/Book. Error: %v", itemTypeStr, err))
+        }
+        itemTypes = append(itemTypes, &ItemType{Uri: uri.String()})
+    }
 
     req := &CreateItemRequest{
         ItemTypes: itemTypes,
@@ -117,7 +126,7 @@ func ExpandCurie(curieString string) (*url.URL, error) {
         }
     }
 
-    return nil, ErrUnimplemented
+    return nil, ErrInvalidUri
 }
 
 // Returns the scope as a URI.

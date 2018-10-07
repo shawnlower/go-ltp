@@ -15,10 +15,10 @@ func TestNormalizeUri(t *testing.T) {
 	invalidUris := []string{
 		"Hello, 世界!",
 		" ",
+		"",
 		"google.com/",
 		"schema.org:Book",
 		"<purl.org:Person>",
-		"",
 	}
 	cURIEs := []string{
 		"<schema:Person>",

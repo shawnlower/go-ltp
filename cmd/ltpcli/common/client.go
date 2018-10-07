@@ -57,7 +57,6 @@ func GetClient() (c api.APIClient, ctx context.Context, err error) {
 	default:
 		panic(fmt.Sprintf("Invalid scheme: %s. Valid schemes are 'grpc', '...'", u.Scheme))
 	}
-
 }
 
 func getGrpcClient(host string, port string) (c api.APIClient, ctx context.Context, err error) {

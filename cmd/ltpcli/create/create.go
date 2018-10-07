@@ -22,10 +22,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	DEFAULT_TYPE = "http://schema.org/Thing"
-)
-
 // createCmd represents the create command
 func NewCreateCommand() *cobra.Command {
 	var cmd = &cobra.Command{
@@ -60,8 +56,7 @@ func NewCreateCommand() *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().String("type", DEFAULT_TYPE,
-		"Type of item to create. Default: "+DEFAULT_TYPE)
+	cmd.Flags().StringP("type", "t", "", "Type of item to create.")
 	cmd.MarkFlagRequired("type")
 
 	return cmd
