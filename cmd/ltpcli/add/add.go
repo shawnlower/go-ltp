@@ -40,9 +40,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"golang.org/x/net/context"
 )
 
 var dryRun bool
+var config common.ClientConfig
 
 // addCmd represents the add command
 func NewAddCommand() *cobra.Command {
@@ -65,8 +67,7 @@ func NewAddCommand() *cobra.Command {
         go-ltp add ~/Pictures/Jamaica_Bay.png
         `,
 		PreRun: func(cmd *cobra.Command, args []string) {
-
-			dryRun = viper.GetBool("outputs.dry-run")
+            dryRun = viper.GetBool("outputs.dry-run")
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 
@@ -201,11 +202,11 @@ func NewAddCommand() *cobra.Command {
 				*/
 
 				jsonDoc, err := inputToJson(&input, &asyncParsers, &serialParsers)
-
 				fileWriter(bytes.NewReader(jsonDoc), metadatafile)
 
-				// Test rpc
-				remoteWriter(bytes.NewReader(jsonDoc), metadatafile)
+                // Setup a client
+                client, ctx, err := common.GetClient(cmd)
+				remoteWriter(client, ctx, bytes.NewReader(jsonDoc), metadatafile)
 			}
 		},
 	}
@@ -216,7 +217,6 @@ func NewAddCommand() *cobra.Command {
 	return cmd
 }
 
-// func metadataToJson(m ...[]models.MetadataItem){
 func inputToJson(input *models.Input, asyncParsers *[]models.Parser,
 	serialParsers *[]models.Parser) (jsonDoc []byte, err error) {
 
@@ -269,6 +269,10 @@ func inputToJson(input *models.Input, asyncParsers *[]models.Parser,
 		metadata.Parser = parser.GetName()
 		metadata.Type = "async"
 
+        // Test fetching meta
+        parsers.MetadataToStatements(parser.GetMetadata())
+        // log.Debugf("*** METADATA(%#v) - Statements(%#v)\n", metadataItem,
+
 		// Add per-parser metadata
 		for _, metadataItem := range parser.GetMetadata() {
 			metadata.Items = append(metadata.Items, metadataItem)
@@ -294,18 +298,12 @@ func inputToJson(input *models.Input, asyncParsers *[]models.Parser,
 	}
 
 	jsonDoc, _ = json.MarshalIndent(jmeta, "", "  ")
-	// log.Debug(fmt.Sprintf("***\njson: %s\n", jsonDoc))
 	return jsonDoc, nil
 }
 
-func remoteWriter(r io.Reader, f string) (err error) {
+func remoteWriter(c api.APIClient, ctx context.Context, r io.Reader, f string) (err error) {
 	if r == nil {
 		log.Fatal("Nothing to write (parser returned empty input?)")
-	}
-
-	c, ctx, err := common.GetClient()
-	if err != nil {
-		log.Fatalf("did not connect: %v", err)
 	}
 
 	type Item struct {

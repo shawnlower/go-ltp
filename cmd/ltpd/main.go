@@ -50,7 +50,6 @@ to quickly create a Cobra application.`,
 		log.Debug("Log level set to debug")
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cmd.Flags().String("listen-addr", "grpc://127.0.0.1:17900", "listen address")
 		run.RunServer(cmd, args)
 		return nil
 	},
@@ -71,9 +70,13 @@ func init() {
 	log.SetLevel(log.InfoLevel)
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.ltpserver.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.go-ltp.toml)")
 	rootCmd.PersistentFlags().Bool("debug", false, "Enable debug mode")
 	rootCmd.PersistentFlags().Bool("foreground", false, "Run in foreground (default when debug enabled)")
+    rootCmd.Flags().String("listen-addr", "grpc://127.0.0.1:17900", "listen address")
+    rootCmd.Flags().String("cert", "cert.pem", "X509 Certificate identifying this server")
+    rootCmd.Flags().String("key", "cert.pem", "PEM encoded private key for the certificate")
+    rootCmd.Flags().String("ca-cert", "cacert.pem", "X509 Certificate of issuing certificate authority")
 
 }
 
@@ -90,9 +93,8 @@ func initConfig() {
 			os.Exit(1)
 		}
 
-		// Search config in home directory with name ".ltpserver" (without extension).
 		viper.AddConfigPath(home)
-		viper.SetConfigName(".ltpserver")
+		viper.SetConfigName(".go-ltp.toml")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match

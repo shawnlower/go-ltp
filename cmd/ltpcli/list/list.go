@@ -39,7 +39,7 @@ func NewListCommand() *cobra.Command {
 func listCommand(cmd *cobra.Command, args []string) {
 	fmt.Println("list called")
 
-	c, ctx, err := common.GetClient()
+	c, ctx, err := common.GetClient(cmd)
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}

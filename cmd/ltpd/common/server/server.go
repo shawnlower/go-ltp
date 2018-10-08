@@ -1,9 +1,11 @@
 package server
 
 import (
+    "crypto/tls"
+    "crypto/x509"
 	"fmt"
+    "io/ioutil"
 	"net"
-	"net/url"
 
 	"github.com/shawnlower/go-ltp/api"
 
@@ -11,17 +13,16 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
 )
 
-type server struct{}
-
-func (s *server) GetVersion(ctx context.Context, in *api.Empty) (*api.VersionResponse, error) {
+func (s *Server) GetVersion(ctx context.Context, in *api.Empty) (*api.VersionResponse, error) {
 	log.Debug(fmt.Sprintf("GetVersion called. ctx: %#v\n", ctx))
 	return &api.VersionResponse{VersionString: "LTP Server v0.0.0"}, nil
 }
 
-func (s *server) CreateItem(ctx context.Context, request *api.CreateItemRequest) (*api.CreateItemResponse, error) {
+func (s *Server) CreateItem(ctx context.Context, request *api.CreateItemRequest) (*api.CreateItemResponse, error) {
 	log.Debug("CreateItem called: ", request)
 
 	uuid, err := uuid.NewUUID()
@@ -42,50 +43,72 @@ func (s *server) CreateItem(ctx context.Context, request *api.CreateItemRequest)
 	return resp, nil
 }
 
-func Serve(listenAddr string) {
+type Server struct {}
 
-	var (
-		scheme string
-		host   string
-		port   string
-	)
+// Creates a new server with mandatory mutual-TLS authentication
+func NewInsecureGrpcServer(host string, port string) (*grpc.Server, error) {
 
-	u, err := url.Parse(listenAddr)
-	if err != nil {
-		log.Fatal(err)
-	}
+    // Get credentials
 
-	host = u.Hostname()
-
-	if u.Port() == "" {
-		port = "17900"
-	} else {
-		port = u.Port()
-	}
-
-	switch u.Scheme {
-	case "grpc":
-		scheme = "grpc"
-	case "http":
-	case "https":
-		scheme = "http"
-
-	default:
-		panic(fmt.Sprintf("Invalid scheme: %s. Valid schemes are 'grpc', 'http'", u.Scheme))
-	}
-
-	log.Debug(fmt.Sprintf("Starting %s server on %s port %s", scheme, host, port))
-
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", host, port))
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-	s := grpc.NewServer()
-	api.RegisterAPIServer(s, &server{})
+	server := grpc.NewServer()
+	api.RegisterAPIServer(server, &Server{})
 
 	// Register reflection service on gRPC server.
-	reflection.Register(s)
-	if err := s.Serve(lis); err != nil {
+	reflection.Register(server)
+
+    // Setup network listener
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", host, port))
+	if err != nil {
+        log.Fatalf("failed to listen: %v", err)
+	}
+
+	if err := server.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
+
+    return server, nil
+}
+
+// Creates a new server with mandatory mutual-TLS authentication
+func NewMutualTLSGrpcServer(host string, port string, certFile string, keyFile string, caCertFile string) (*grpc.Server, error) {
+
+    // Get credentials
+    certificate, err := tls.LoadX509KeyPair(certFile, keyFile)
+    if err != nil {
+        log.Fatalf("Unable to load keypair: %s", err)
+    }
+
+    certPool := x509.NewCertPool()
+    ca, err := ioutil.ReadFile(caCertFile)
+    if err != nil {
+        log.Fatalf("Unable to load CA cert: %s", err)
+    }
+
+    if ok := certPool.AppendCertsFromPEM(ca); !ok {
+        log.Fatalf("Unable to add CA cert: %s", err)
+    }
+
+    creds := credentials.NewTLS(&tls.Config{
+        ClientAuth: tls.RequireAndVerifyClientCert,
+        Certificates: []tls.Certificate{certificate},
+        ClientCAs: certPool,
+    })
+
+	server := grpc.NewServer(grpc.Creds(creds))
+	api.RegisterAPIServer(server, &Server{})
+
+	// Register reflection service on gRPC server.
+	reflection.Register(server)
+
+    // Setup network listener
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", host, port))
+	if err != nil {
+		return nil, fmt.Errorf("failed to listen: %v", err)
+	}
+
+	if err := server.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
+
+    return server, nil
 }

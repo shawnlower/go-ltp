@@ -36,7 +36,7 @@ func NewCreateCommand() *cobra.Command {
         `,
 		Run: func(cmd *cobra.Command, args []string) {
 
-			c, ctx, err := common.GetClient()
+			c, ctx, err := common.GetClient(cmd)
 			if err != nil {
 				log.Fatalf("did not connect: %v", err)
 			}

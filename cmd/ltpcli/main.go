@@ -67,7 +67,15 @@ func init() {
 	// will be global for your application.
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.go-ltp.yaml)")
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug logging")
+    rootCmd.PersistentFlags().String("cert", "cert.pem", "X509 Certificate identifying this server")
+    rootCmd.PersistentFlags().String("auth", "mutual-tls", "Authentication type (insecure or mutual-tls)")
+    rootCmd.PersistentFlags().String("key", "cert.pem", "PEM encoded private key for the certificate")
+    rootCmd.PersistentFlags().String("ca-cert", "cacert.pem", "X509 Certificate of issuing certificate authority")
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
+	viper.BindPFlag("remote.auth", rootCmd.PersistentFlags().Lookup("auth"))
+	viper.BindPFlag("remote.ca-cert", rootCmd.PersistentFlags().Lookup("ca-cert"))
+	viper.BindPFlag("remote.cert", rootCmd.PersistentFlags().Lookup("cert"))
+	viper.BindPFlag("remote.key", rootCmd.PersistentFlags().Lookup("key"))
 
 	rootCmd.AddCommand(add.NewAddCommand())
 	rootCmd.AddCommand(info.NewInfoCommand())

@@ -15,29 +15,63 @@
 package common
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+    "io/ioutil"
 	"net/url"
 	"time"
 
 	"github.com/shawnlower/go-ltp/api"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
-const (
-	serverUrl = "grpc://127.0.0.1:17900"
-)
+type ClientConfig struct {
+	ServerUrl string;
+    AuthMethod string;
+    ClientCert string;
+    ClientKey string;
+    CACert string;
+}
 
-func GetClient() (c api.APIClient, ctx context.Context, err error) {
+func GetClient(cmd *cobra.Command) (api.APIClient, context.Context, error) {
+    config := &ClientConfig{
+        ServerUrl : viper.GetString("remote.uri"),
+        ClientCert : viper.GetString("remote.cert"),
+        ClientKey : viper.GetString("remote.key"),
+        CACert : viper.GetString("remote.ca-cert"),
+        AuthMethod : viper.GetString("remote.ca-cert"),
+    }
+
+	u, err := url.Parse(config.ServerUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	switch u.Scheme {
+	case "grpc":
+		return getMutualTLSGrpcClient(config)
+
+	default:
+		log.Fatalf("Invalid scheme: %s. Valid schemes are 'grpc', '...'", u.Scheme)
+		return nil, nil, fmt.Errorf("Invalid scheme: %s. Valid schemes are 'grpc', '...'", u.Scheme)
+	}
+}
+
+func getInsecureGrpcClient(cfg *ClientConfig) (api.APIClient, context.Context, error) {
 
 	var (
 		host string
 		port string
 	)
 
-	u, err := url.Parse(serverUrl)
+	u, err := url.Parse(cfg.ServerUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -50,30 +84,68 @@ func GetClient() (c api.APIClient, ctx context.Context, err error) {
 		port = u.Port()
 	}
 
-	switch u.Scheme {
-	case "grpc":
-		return getGrpcClient(host, port)
-
-	default:
-		panic(fmt.Sprintf("Invalid scheme: %s. Valid schemes are 'grpc', '...'", u.Scheme))
-	}
-}
-
-func getGrpcClient(host string, port string) (c api.APIClient, ctx context.Context, err error) {
-
-	var (
-		address string
-	)
-
-	address = fmt.Sprintf("%s:%s", host, port)
+    address := fmt.Sprintf("%s:%s", host, port)
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
 
-	c = api.NewAPIClient(conn)
+    c := api.NewAPIClient(conn)
+    ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
 
-	ctx, _ = context.WithTimeout(context.Background(), 3*time.Second)
+	return c, ctx, nil
+}
+
+func getMutualTLSGrpcClient(cfg *ClientConfig) (api.APIClient, context.Context, error) {
+
+	var (
+		host string
+		port string
+	)
+
+	u, err := url.Parse(cfg.ServerUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	host = u.Hostname()
+
+	if u.Port() == "" {
+		port = "17900"
+	} else {
+		port = u.Port()
+	}
+
+    certificate, err := tls.LoadX509KeyPair(cfg.ClientCert, cfg.ClientKey)
+    if err != nil {
+		log.Fatalf("Unable to load keypair: %s", err)
+    }
+
+    certPool := x509.NewCertPool()
+    ca, err := ioutil.ReadFile(cfg.CACert)
+    if err != nil {
+		log.Fatalf("Unable to load CA cert: %s", err)
+    }
+
+    if ok := certPool.AppendCertsFromPEM(ca); !ok {
+		log.Fatalf("Unable to add CA cert: %s", err)
+    }
+
+    creds := credentials.NewTLS(&tls.Config{
+        ServerName: host,
+        Certificates: []tls.Certificate{certificate},
+        RootCAs: certPool,
+    })
+
+    address := fmt.Sprintf("%s:%s", host, port)
+	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(creds))
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+
+    c := api.NewAPIClient(conn)
+
+    ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
 
 	return c, ctx, nil
 
