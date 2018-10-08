@@ -1,6 +1,7 @@
 package parsers
 
 import (
+	"github.com/shawnlower/go-ltp/api"
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/common/models"
 
 	"fmt"
@@ -112,4 +113,24 @@ func SerialParsers(reader io.Reader, parsers []models.Parser) (r io.Reader, err 
 	}
 	log.Debug(fmt.Sprintln("Returning I/O stream from", parser.GetName()))
 	return r1, nil
+}
+
+// Converts a slice of metadata map[string]string into
+// ... that can be used with the semantic store
+//
+// Photo 
+// Subject:
+// Predicate: metadata
+
+func MetadataToStatements(mm []models.MetadataItem) {
+    for _, m := range(mm) {
+        s := &api.Statement{
+            Subject: "",
+            Predicate: "",
+            Object: "",
+            Scope: nil,
+        }
+        log.Debugf("MetadataItem(%#v) Statement(%#v)", m, s)
+    }
+
 }

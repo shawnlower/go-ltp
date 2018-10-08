@@ -1,3 +1,8 @@
+// Implements a MIME-type parser to detect the content type of
+// a file or stream.
+//
+// Using net/http, the implementation of the 'sniffing' logic is
+// implemented in https://golang.org/src/net/http/sniff.go
 package mimetype
 
 import (
@@ -9,11 +14,6 @@ import (
 	"net/http"
 )
 
-// Implements a MIME-type parser, to detect the content type of
-// a file or stream.
-
-// Using net/http, the implementation of the 'sniffing' logic is
-// implemented in <https://golang.org/src/net/http/sniff.go>
 
 type MimetypeParser struct {
 	Metadata []models.MetadataItem
