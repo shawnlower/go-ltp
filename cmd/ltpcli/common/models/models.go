@@ -2,12 +2,14 @@ package models
 
 import (
 	"io"
+	"github.com/shawnlower/go-ltp/api"
 )
 
 type Input struct {
 	Name     string
 	Reader   io.Reader
 	Metadata []MetadataItem
+    Item     *api.Item
 }
 
 type MetadataItem map[string]string

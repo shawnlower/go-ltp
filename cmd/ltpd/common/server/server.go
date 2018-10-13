@@ -27,7 +27,7 @@ func (s *Server) CreateItem(ctx context.Context, request *api.CreateItemRequest)
 
 	uuid, err := uuid.NewUUID()
 	if err != nil {
-		return nil, api.ErrInvalidItem
+        return nil, api.ErrInvalidItem
 	}
 
 	item := &api.Item{

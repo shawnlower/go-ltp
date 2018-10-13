@@ -15,13 +15,14 @@
 package run
 
 import (
-	"fmt"
     "net/url"
+    "strings"
 
+	"github.com/shawnlower/go-ltp/api"
 	"github.com/shawnlower/go-ltp/cmd/ltpd/common/server"
 
 	"github.com/spf13/cobra"
-	"google.golang.org/grpc"
+	"github.com/spf13/viper"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,21 +30,32 @@ var (
 	listenAddr string
 )
 
+type ServerConfig struct {
+	ServerUrl string;
+    AuthMethod string;
+    ServerCert string;
+    ServerKey string;
+    CACert string;
+}
+
 func RunServer(cmd *cobra.Command, args []string) error {
-	listenAddr := cmd.Flags().Lookup("listen-addr").Value.String()
+    config := &ServerConfig{
+        ServerUrl : strings.ToLower(viper.GetString("server.listen-addr")),
+        ServerCert : viper.GetString("server.cert"),
+        ServerKey : viper.GetString("server.key"),
+        CACert : viper.GetString("server.ca-cert"),
+        AuthMethod : strings.ToLower(viper.GetString("remote.auth")),
+    }
 
-    var (
-        scheme string
-        host string
-        port string
-        srv *grpc.Server
-    )
-    _ = srv
-
-	u, err := url.Parse(listenAddr)
+	u, err := url.Parse(config.ServerUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+    var (
+        host string
+        port string
+    )
 
     host = u.Hostname()
 
@@ -52,28 +64,20 @@ func RunServer(cmd *cobra.Command, args []string) error {
 	} else {
         port = u.Port()
 	}
+    log.Debug(u, config)
 
-	switch u.Scheme {
-	case "grpc":
-        scheme = "grpc"
-	case "http":
-	case "https":
-        scheme = "http"
-
-	log.Debug(fmt.Sprintf("Starting %s server on %s port %s", scheme, host, port))
-	default:
-		panic(fmt.Sprintf("Invalid scheme: %s. Valid schemes are 'grpc', 'http'", u.Scheme))
-	}
-
-    if scheme == "grpc" {
-        serverCert := cmd.Flags().Lookup("cert").Value.String()
-		// log.Debug(serverCert)
-        serverKey := cmd.Flags().Lookup("key").Value.String()
-        caCert := cmd.Flags().Lookup("ca-cert").Value.String()
-
-        srv, err = server.NewMutualTLSGrpcServer(host, port, serverCert, serverKey, caCert)
-        // return NewInsecureGrpcServer(host, port)
+    if u.Scheme == "grpc" {
+        if config.AuthMethod == "mutual-tls" {
+            _, err = server.NewMutualTLSGrpcServer(host, port,
+                config.ServerCert, config.ServerKey, config.CACert)
+            return err
+        } else if config.AuthMethod == "insecure" {
+            _, err := server.NewInsecureGrpcServer(host, port)
+            return err
+        } else {
+            return &api.ErrInvalidAuthMethod{Method: config.AuthMethod}
+        }
+    } else {
+        return &api.ErrInvalidScheme{Scheme: u.Scheme}
     }
-
-	return nil // TODO: Get proper return code
 }

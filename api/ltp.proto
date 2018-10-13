@@ -70,6 +70,7 @@ message Scope {
 
 message CreateItemRequest {
     repeated ItemType ItemTypes = 1;
+    repeated Statement Statements = 2;
 }
 
 message CreateItemResponse {

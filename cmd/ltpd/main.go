@@ -50,8 +50,11 @@ to quickly create a Cobra application.`,
 		log.Debug("Log level set to debug")
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		run.RunServer(cmd, args)
-		return nil
+        err := run.RunServer(cmd, args)
+		if err != nil {
+            log.Fatal(err)
+        }
+        return err
 	},
 }
 
@@ -77,6 +80,15 @@ func init() {
     rootCmd.Flags().String("cert", "cert.pem", "X509 Certificate identifying this server")
     rootCmd.Flags().String("key", "cert.pem", "PEM encoded private key for the certificate")
     rootCmd.Flags().String("ca-cert", "cacert.pem", "X509 Certificate of issuing certificate authority")
+    rootCmd.Flags().String("auth-method", "mutual-tls", "Authentication method to use (mutual-tls, insecure). Default: mutual-tls")
+
+    viper.BindPFlag("server.listen-addr", rootCmd.Flags().Lookup("listen-addr"))
+    viper.BindPFlag("server.cert", rootCmd.Flags().Lookup("cert"))
+    viper.BindPFlag("server.key", rootCmd.Flags().Lookup("key"))
+    viper.BindPFlag("server.ca-cert", rootCmd.Flags().Lookup("ca-cert"))
+    viper.BindPFlag("remote.auth", rootCmd.Flags().Lookup("auth-method"))
+
+    fmt.Print("Using cert: ", viper.GetString("server.cert"))
 
 }
 
@@ -94,7 +106,7 @@ func initConfig() {
 		}
 
 		viper.AddConfigPath(home)
-		viper.SetConfigName(".go-ltp.toml")
+		viper.SetConfigName(".go-ltp")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
@@ -102,5 +114,7 @@ func initConfig() {
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
-	}
+	} else {
+		fmt.Println("No config found, using defaults")
+    }
 }

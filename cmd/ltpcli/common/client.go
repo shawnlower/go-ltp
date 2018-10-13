@@ -20,6 +20,7 @@ import (
 	"fmt"
     "io/ioutil"
 	"net/url"
+    "strings"
 	"time"
 
 	"github.com/shawnlower/go-ltp/api"
@@ -42,11 +43,11 @@ type ClientConfig struct {
 
 func GetClient(cmd *cobra.Command) (api.APIClient, context.Context, error) {
     config := &ClientConfig{
-        ServerUrl : viper.GetString("remote.uri"),
+        ServerUrl : strings.ToLower(viper.GetString("remote.url")),
         ClientCert : viper.GetString("remote.cert"),
         ClientKey : viper.GetString("remote.key"),
         CACert : viper.GetString("remote.ca-cert"),
-        AuthMethod : viper.GetString("remote.ca-cert"),
+        AuthMethod : strings.ToLower(viper.GetString("remote.auth")),
     }
 
 	u, err := url.Parse(config.ServerUrl)
@@ -54,14 +55,17 @@ func GetClient(cmd *cobra.Command) (api.APIClient, context.Context, error) {
 		log.Fatal(err)
 	}
 
-	switch u.Scheme {
-	case "grpc":
-		return getMutualTLSGrpcClient(config)
-
-	default:
-		log.Fatalf("Invalid scheme: %s. Valid schemes are 'grpc', '...'", u.Scheme)
-		return nil, nil, fmt.Errorf("Invalid scheme: %s. Valid schemes are 'grpc', '...'", u.Scheme)
-	}
+    if u.Scheme == "grpc" {
+        if config.AuthMethod == "mutual-tls" {
+            return getMutualTLSGrpcClient(config)
+        } else if config.AuthMethod == "insecure" {
+            return getInsecureGrpcClient(config)
+        } else {
+            return nil, nil, &api.ErrInvalidAuthMethod{Method: config.AuthMethod}
+        }
+    } else {
+        return nil, nil, &api.ErrInvalidScheme{Scheme: u.Scheme}
+    }
 }
 
 func getInsecureGrpcClient(cfg *ClientConfig) (api.APIClient, context.Context, error) {

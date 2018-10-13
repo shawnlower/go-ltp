@@ -103,8 +103,9 @@ func NewAddCommand() *cobra.Command {
 			for _, inputString := range args {
 				if inputString == "-" {
 					log.Info("Reading from stdin...")
+                    item, _ := api.NewItem("schema:Thing")
 					inputs = append(inputs,
-						models.Input{Name: "stdin", Reader: os.Stdin})
+                        models.Input{Name: "stdin", Reader: os.Stdin, Item: item})
 				} else if m, _ := regexp.MatchString("https?://", inputString); m {
 					// Call HTTP fetch module to retrieve page
 					log.Fatal("URLs not yet supported.")
@@ -127,7 +128,8 @@ func NewAddCommand() *cobra.Command {
 						os.Exit(1)
 					}
 
-					input := models.Input{Name: "file", Reader: fd}
+                    item, _ := api.NewItem("schema:Thing")
+                    input := models.Input{Name: "file", Reader: fd, Item: item}
 
 					// Add the parsers to the input object
 					input.Metadata = append(input.Metadata,
@@ -164,7 +166,7 @@ func NewAddCommand() *cobra.Command {
 				go func() {
 					err := parsers.FanoutParsers(serialPipeR, asyncParsers)
 					if err != nil {
-						log.Error("Failed to parse")
+						log.Fatal("Failed to parse")
 					}
 					wg.Done()
 				}()
@@ -172,7 +174,7 @@ func NewAddCommand() *cobra.Command {
 				// Serial parsing pipeline ( input -> compression -> encryption )
 				outReader, err := parsers.SerialParsers(tr, serialParsers)
 				if err != nil {
-					log.Error("Failed to parse")
+					log.Fatal("Failed to parse")
 				}
 
 				// The pipe must be closed to allow all inputs to exit
@@ -199,6 +201,14 @@ func NewAddCommand() *cobra.Command {
 				/*
 				   We can now handle the metadata (including any output
 				   meta-data, such as output filename, s3/gcs URL, etc).
+
+                   'ltpcli add' is a combination of two things:
+
+                   1) Create a new Item, referring to some real-world thing,
+                      such as a person, a book, a restaurant, or an event.
+                   2) Take any semantic metadata from the parsers, and link
+                      it to our new item.
+
 				*/
 
 				jsonDoc, err := inputToJson(&input, &asyncParsers, &serialParsers)
@@ -206,7 +216,11 @@ func NewAddCommand() *cobra.Command {
 
                 // Setup a client
                 client, ctx, err := common.GetClient(cmd)
-				remoteWriter(client, ctx, bytes.NewReader(jsonDoc), metadatafile)
+                if err != nil {
+                    log.Fatal(err)
+                }
+                err = remoteWriter(input, client, ctx)
+
 			}
 		},
 	}
@@ -301,21 +315,26 @@ func inputToJson(input *models.Input, asyncParsers *[]models.Parser,
 	return jsonDoc, nil
 }
 
-func remoteWriter(c api.APIClient, ctx context.Context, r io.Reader, f string) (err error) {
-	if r == nil {
-		log.Fatal("Nothing to write (parser returned empty input?)")
-	}
-
-	type Item struct {
-		ItemTypeURI string
-	}
+func remoteWriter(in models.Input, c api.APIClient, ctx context.Context) error {
 
     req, err := api.NewItemRequest("http://schema.org/Thing")
     if err != nil {
 		log.Fatalf("Error calling CreateItemRequest: %v", err)
     }
 
+    s, err := api.NewStatement("sub", "pred", "obj", nil)
+    in.Item.Statements = append(in.Item.Statements, s)
+
+    for _, s := range(in.Item.Statements) {
+        req.Statements = append(req.Statements, s)
+        log.Debugf("Statement: %s", s)
+    }
+    log.Debugf("%d statements", len(in.Item.Statements))
+    log.Debugf("%d statements", len(req.Statements))
+    // copy(in.Item.Statements, req.Statements)
+    // copy(req.Statements, in.Item.Statements)
 	resp, err := c.CreateItem(ctx, req)
+    log.Debugf("Sending request %s with %d statements", req, len(req.Statements))
     if err != nil {
 		log.Fatalf("Error calling CreateItem: %v", err)
 	}
