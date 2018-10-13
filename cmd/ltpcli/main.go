@@ -19,7 +19,6 @@ import (
 	"os"
 
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/add"
-	"github.com/shawnlower/go-ltp/cmd/ltpcli/create"
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/info"
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/list"
 
@@ -82,7 +81,6 @@ func init() {
 	rootCmd.AddCommand(add.NewAddCommand())
 	rootCmd.AddCommand(info.NewInfoCommand())
 	rootCmd.AddCommand(list.NewListCommand())
-	rootCmd.AddCommand(create.NewCreateCommand())
 }
 
 // initConfig reads in config file and ENV variables if set.
