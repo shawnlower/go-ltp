@@ -122,11 +122,11 @@ func ExpandCurie(curieString string) (*url.URL, error) {
         if prefix != "" {
             return url.Parse(fmt.Sprintf("%s%s", ns, suffix))
         } else {
-            return nil, ErrInvalidUri
+            return nil, &ErrInvalidUri{Uri: curieString}
         }
     }
 
-    return nil, ErrInvalidUri
+    return nil, &ErrInvalidUri{Uri: curieString}
 }
 
 // Returns the scope as a URI.
