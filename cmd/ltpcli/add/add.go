@@ -69,166 +69,210 @@ func NewAddCommand() *cobra.Command {
 		PreRun: func(cmd *cobra.Command, args []string) {
             dryRun = viper.GetBool("outputs.dry-run")
 		},
-		Run: func(cmd *cobra.Command, args []string) {
-
-			// Attempt to parse each of the inputs provided
-			if len(args) < 1 {
-				log.Fatal("No inputs specified. Use '-' for stdin.")
-				os.Exit(1)
-			}
-
-			// array for holding multiple inputs
-			var inputs []models.Input
-
-			// Setup our initial list of parsers.
-
-			var asyncParsers []models.Parser
-			var parserNames []string
-			for _, parserName := range viper.GetStringSlice("parsers.async") {
-				parser := parsers.GetParser(parserName)
-				asyncParsers = append(asyncParsers, parser)
-				parserNames = append(parserNames, parser.GetName())
-			}
-			log.Debug("Added async parsers: ", parserNames)
-
-			var serialParsers []models.Parser
-			parserNames = nil
-			for _, parserName := range viper.GetStringSlice("parsers.serial") {
-				parser := parsers.GetParser(parserName)
-				serialParsers = append(serialParsers, parser)
-				parserNames = append(parserNames, parser.GetName())
-			}
-			log.Debug("Added serial parsers: ", parserNames)
-
-			for _, inputString := range args {
-				if inputString == "-" {
-					log.Info("Reading from stdin...")
-                    item, _ := api.NewItem("schema:Thing")
-					inputs = append(inputs,
-                        models.Input{Name: "stdin", Reader: os.Stdin, Item: item})
-				} else if m, _ := regexp.MatchString("https?://", inputString); m {
-					// Call HTTP fetch module to retrieve page
-					log.Fatal("URLs not yet supported.")
-					os.Exit(1)
-				} else {
-					// Assume the argument is a file; fail if it can't be opened
-					fd, err := os.Open(inputString)
-					if os.IsNotExist(err) {
-						log.Fatal(err)
-						os.Exit(1)
-					} else if err != nil {
-						log.Fatal(err)
-						os.Exit(1)
-					}
-
-					// Ensure this is a file, not a directory
-					st, _ := fd.Stat()
-					if st.IsDir() {
-						log.Fatal("Directories not yet supported.")
-						os.Exit(1)
-					}
-
-                    item, _ := api.NewItem("schema:Thing")
-                    input := models.Input{Name: "file", Reader: fd, Item: item}
-
-					// Add the parsers to the input object
-					input.Metadata = append(input.Metadata,
-						models.MetadataItem{
-							"filename": fd.Name(),
-						})
-					inputs = append(inputs, input)
-				}
-			}
-
-			/* Main loop; iterate across all of our inputs and do the following:
-
-			   1) Split the input into two `io.Reader`s. The first is processed
-			   as part of a fanout pipeline by FanoutParsers(), each parser
-			   reading the stream and outputting metadata, such as a hash,
-			   the filesystem metadata, or the OS process metadata for the
-			   remote end of the stdin pipe.
-			   2) The second stream is a serial pipeline, which passes the data
-			   through a sequence of parsers.
-			   Example:
-			   {source stream} -> {compression parser} -> {encryption parser}
-			   3) Finally, the output stream and metadata are written.
-			*/
-			for _, input := range inputs {
-
-				// Create a pipe for the serial pipeline
-				serialPipeR, serialPipeW := io.Pipe()
-				tr := io.TeeReader(input.Reader, serialPipeW)
-
-				var wg sync.WaitGroup
-
-				// Reader 1
-				wg.Add(1)
-				go func() {
-					err := parsers.FanoutParsers(serialPipeR, asyncParsers)
-					if err != nil {
-						log.Fatal("Failed to parse")
-					}
-					wg.Done()
-				}()
-
-				// Serial parsing pipeline ( input -> compression -> encryption )
-				outReader, err := parsers.SerialParsers(tr, serialParsers)
-				if err != nil {
-					log.Fatal("Failed to parse")
-				}
-
-				// The pipe must be closed to allow all inputs to exit
-				serialPipeW.Close()
-				wg.Wait()
-
-				// Construct filename based on hash of the contents.
-				var datafile, metadatafile string
-				for _, parser := range asyncParsers {
-					for _, mdi := range parser.GetMetadata() {
-						if mdi["hash"] != "" {
-							datafile = fmt.Sprintf("%s.data", mdi["hash"])
-							metadatafile = fmt.Sprintf("%s.json", mdi["hash"])
-							log.Debug("Got filename ", datafile)
-						}
-					}
-				}
-				if datafile == "" {
-					datafile = fmt.Sprintf("output.data")
-					metadatafile = fmt.Sprintf("output.json")
-				}
-				fileWriter(outReader, datafile)
-
-				/*
-				   We can now handle the metadata (including any output
-				   meta-data, such as output filename, s3/gcs URL, etc).
-
-                   'ltpcli add' is a combination of two things:
-
-                   1) Create a new Item, referring to some real-world thing,
-                      such as a person, a book, a restaurant, or an event.
-                   2) Take any semantic metadata from the parsers, and link
-                      it to our new item.
-
-				*/
-
-				jsonDoc, err := inputToJson(&input, &asyncParsers, &serialParsers)
-				fileWriter(bytes.NewReader(jsonDoc), metadatafile)
-
-                // Setup a client
-                client, ctx, err := common.GetClient(cmd)
-                if err != nil {
-                    log.Fatal(err)
-                }
-                err = remoteWriter(input, client, ctx)
-
-			}
-		},
+		Run: addCommand,
 	}
+
+	cmd.Flags().StringP("type", "t", "", "Type of item to create.")
+	cmd.Flags().StringP("name", "n", "", "Name of item to create. This becomes the primaryLabel")
 
 	cmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Dry-run only. DO NOT write output")
 
 	viper.BindPFlag("outputs.dry-run", cmd.PersistentFlags().Lookup("dry-run"))
 	return cmd
+}
+
+func addCommand(cmd *cobra.Command, args []string) {
+
+    var (
+        input models.Input
+        parserNames []string
+    )
+
+    if len(args) == 0 {
+        // Calling add with no positional arguments is allowed if
+        // we're provided with both:
+        //   -n: A name for the new item; this becomes the primaryLabel
+        //   -t: A type for the new item
+        name, _ := cmd.Flags().GetString("name")
+        typeUri, err := cmd.Flags().GetString("type")
+
+        if name == "" || typeUri == "" {
+            log.Fatal("No inputs specified. Use '-' for stdin.")
+        }
+
+        // Create item request
+        req, err := api.NewCreateItemRequest(typeUri)
+        if err != nil {
+            log.Fatalf("Error creating ItemRequest: %v", err)
+        }
+
+        // Get client to submit
+        c, ctx, err := common.GetClient()
+        if err != nil {
+            log.Fatalf("did not connect: %v", err)
+        }
+
+        resp, err := c.CreateItem(ctx, req)
+        if err != nil {
+            log.Fatalf("Error calling CreateItem: %v", err)
+        }
+        log.Printf("Received: %s", resp)
+
+        return
+    }
+
+    if len(args) > 1 {
+        log.Fatal("Only a single input supported.")
+    }
+
+    inputString := args[0]
+    if inputString == "-" {
+        log.Info("Reading from stdin...")
+        item, _ := api.NewItem("schema:Thing")
+        input = models.Input{
+            Name: "stdin",
+            Reader: os.Stdin,
+            Metadata: models.Metadata{"filename": "-"},
+            Item: item,
+        }
+    } else if m, _ := regexp.MatchString("https?://", inputString); m {
+        // Call HTTP fetch module to retrieve page
+        log.Fatal("URLs not yet supported.")
+        os.Exit(1)
+    } else {
+        // Assume the argument is a file; fail if it can't be opened
+        fd, err := os.Open(inputString)
+        if os.IsNotExist(err) {
+            log.Fatal(err)
+            os.Exit(1)
+        } else if err != nil {
+            log.Fatal(err)
+            os.Exit(1)
+        }
+
+        // Ensure this is a file, not a directory
+        st, _ := fd.Stat()
+        if st.IsDir() {
+            log.Fatal("Directories not yet supported.")
+            os.Exit(1)
+        }
+
+        item, _ := api.NewItem("schema:Thing")
+        input = models.Input{
+            Name: "file",
+            Reader: fd,
+            Metadata: models.Metadata{"filename": fd.Name()},
+            Item: item,
+        }
+    }
+
+    // Setup our initial list of parsers.
+    for _, parserName := range viper.GetStringSlice("parsers.async") {
+        parser := parsers.GetParser(parserName)
+        input.AsyncParsers = append(input.AsyncParsers, parser)
+        parserNames = append(parserNames, parser.GetName())
+    }
+    log.Debug("Added async parsers: ", parserNames)
+
+    parserNames = nil
+    for _, parserName := range viper.GetStringSlice("parsers.serial") {
+        parser := parsers.GetParser(parserName)
+        input.SerialParsers = append(input.SerialParsers, parser)
+        parserNames = append(parserNames, parser.GetName())
+    }
+    log.Debug("Added serial parsers: ", parserNames)
+
+    if err := handleInput(input); err != nil {
+        log.Fatal("Parsing input failed: ", err)
+    }
+}
+
+func handleInput(input models.Input) error {
+    /* Main loop; handle our input
+
+    1) Split the input into two `io.Reader`s. The first is processed
+    as part of a fanout pipeline by FanoutParsers(), each parser
+    reading the stream and outputting metadata, such as a hash,
+    the filesystem metadata, or the OS process metadata for the
+    remote end of the stdin pipe.
+    2) The second stream is a serial pipeline, which passes the data
+    through a sequence of parsers.
+    Example:
+    {source stream} -> {compression parser} -> {encryption parser}
+    3) Finally, the output stream and metadata are written.
+    */
+
+    // Create a pipe for the serial pipeline
+    serialPipeR, serialPipeW := io.Pipe()
+    tr := io.TeeReader(input.Reader, serialPipeW)
+
+    var wg sync.WaitGroup
+
+    // Reader 1
+    wg.Add(1)
+    go func() {
+        err := parsers.FanoutParsers(serialPipeR, input.AsyncParsers)
+        if err != nil {
+            log.Fatal("Failed to parse")
+        }
+        wg.Done()
+    }()
+
+    // Serial parsing pipeline ( input -> compression -> encryption )
+    outReader, err := parsers.SerialParsers(tr, input.SerialParsers)
+    if err != nil {
+        log.Fatal("Failed to parse")
+    }
+
+    // The pipe must be closed to allow all inputs to exit
+    serialPipeW.Close()
+    wg.Wait()
+
+    // Construct filename based on hash of the contents.
+    var datafile, metadatafile string
+    for _, parser := range input.AsyncParsers {
+        metadata := parser.GetMetadata()
+        for _, k := range metadata {
+            if k == "hash" {
+                datafile = fmt.Sprintf("%s.data", metadata[k])
+                metadatafile = fmt.Sprintf("%s.json", metadata[k])
+                log.Debug("Got filename ", datafile)
+            }
+        }
+    }
+    if datafile == "" {
+        datafile = fmt.Sprintf("output.data")
+        metadatafile = fmt.Sprintf("output.json")
+    }
+    // fileWriter(outReader, datafile)
+    _ = bytes.NewBuffer
+    _ = outReader
+    _ = metadatafile
+
+
+    /*
+    We can now handle the metadata (including any output
+    meta-data, such as output filename, s3/gcs URL, etc).
+
+    'ltpcli add' is a combination of two things:
+
+    1) Create a new Item, referring to some real-world thing,
+    such as a person, a book, a restaurant, or an event.
+    2) Take any semantic metadata from the parsers, and link
+    it to our new item.
+
+    */
+
+    // jsonDoc, err := inputToJson(&input, &asyncParsers, &serialParsers)
+    // fileWriter(bytes.NewReader(jsonDoc), metadatafile)
+
+    // Setup a client
+    client, ctx, err := common.GetClient()
+    if err != nil {
+        log.Fatal(err)
+    }
+    err = remoteWriter(input, client, ctx)
+    return err
 }
 
 func inputToJson(input *models.Input, asyncParsers *[]models.Parser,
@@ -269,11 +313,9 @@ func inputToJson(input *models.Input, asyncParsers *[]models.Parser,
 		metadata.Type = "input"
 
 		// Add per-parser metadata
-		for _, metadataItem := range input.Metadata {
-			metadata.Items = append(metadata.Items, metadataItem)
-			log.Debug(fmt.Sprintf("meta: input.%s %#v", input.Name,
-				metadataItem))
-		}
+        metadata.Items = input.Metadata
+        log.Debug(fmt.Sprintf("meta: input.%s %#v", input.Name,
+            input.Metadata))
 		jmeta.Metadata = append(jmeta.Metadata, metadata)
 	}
 
@@ -288,11 +330,9 @@ func inputToJson(input *models.Input, asyncParsers *[]models.Parser,
         // log.Debugf("*** METADATA(%#v) - Statements(%#v)\n", metadataItem,
 
 		// Add per-parser metadata
-		for _, metadataItem := range parser.GetMetadata() {
-			metadata.Items = append(metadata.Items, metadataItem)
-			log.Debug(fmt.Sprintf("meta: async.%s %#v", input.Name,
-				metadataItem))
-		}
+        metadata.Items = parser.GetMetadata()
+        log.Debug(fmt.Sprintf("meta: async.%s %#v", input.Name,
+            metadata.Items))
 		jmeta.Metadata = append(jmeta.Metadata, metadata)
 	}
 
@@ -303,11 +343,8 @@ func inputToJson(input *models.Input, asyncParsers *[]models.Parser,
 		metadata.Type = "serial"
 
 		// Add per-parser metadata
-		for _, metadataItem := range parser.GetMetadata() {
-			metadata.Items = append(metadata.Items, metadataItem)
-			log.Debug(fmt.Sprintf("meta: serial.%s %#v", input.Name,
-				metadataItem))
-		}
+        metadata.Items = parser.GetMetadata()
+        log.Debug(fmt.Sprintf("meta: serial.%s %#v", input.Name, metadata.Items))
 		jmeta.Metadata = append(jmeta.Metadata, metadata)
 	}
 
@@ -317,13 +354,42 @@ func inputToJson(input *models.Input, asyncParsers *[]models.Parser,
 
 func remoteWriter(in models.Input, c api.APIClient, ctx context.Context) error {
 
-    req, err := api.NewItemRequest("http://schema.org/Thing")
+    for _, parser := range(in.AsyncParsers) {
+        metadata := parser.GetMetadata()
+        for k, v := range metadata  {
+            s := in.Item.Uri
+            p := k
+            o := v
+            g := fmt.Sprintf("ltpcli.%s", parser.GetName())
+            log.Debugf("%s.async: <%s> <%s> <%s>", g, s, p, o)
+        }
+    }
+
+    for _, parser := range(in.SerialParsers) {
+        metadata := parser.GetMetadata()
+        for k, v := range metadata  {
+            s := fmt.Sprintf("item")
+            p := k
+            o := v
+            g := fmt.Sprintf("ltpcli.%s", parser.GetName())
+            log.Debugf("%s.serial: <%s> <%s> <%s>", g, s, p, o)
+        }
+    }
+
+    // Add statements to the item
+    s, err := api.NewStatement("sub", "pred", "obj", nil)
+    in.Item.Statements = append(in.Item.Statements, s)
+
+    // Determine Item type
+    // itemType := in.Item.GetType()
+    itemType := "http://schema.org/Thing"
+
+    // Determine Item label
+
+    req, err := api.NewCreateItemRequest(itemType)
     if err != nil {
 		log.Fatalf("Error calling CreateItemRequest: %v", err)
     }
-
-    s, err := api.NewStatement("sub", "pred", "obj", nil)
-    in.Item.Statements = append(in.Item.Statements, s)
 
     for _, s := range(in.Item.Statements) {
         req.Statements = append(req.Statements, s)

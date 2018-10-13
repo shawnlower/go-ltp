@@ -32,7 +32,7 @@ func NewItem(itemTypeStr string) (i *Item, e error) {
 	return item, nil
 }
 
-func NewItemRequest(itemTypeStr string) (*CreateItemRequest, error) {
+func NewCreateItemRequest(itemTypeStr string) (*CreateItemRequest, error) {
 
     if itemTypeStr == "" {
         return nil, errors.New("NewItemRequest called with empty type string.")

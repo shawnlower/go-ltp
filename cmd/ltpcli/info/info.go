@@ -40,7 +40,7 @@ func NewInfoCommand() *cobra.Command {
 func infoCommand(cmd *cobra.Command, args []string) {
 	fmt.Println("info called with ", args)
 
-	c, ctx, err := common.GetClient(cmd)
+	c, ctx, err := common.GetClient()
 	r, err := c.GetVersion(ctx, &api.Empty{})
 	if err != nil {
 		log.Fatalf("Error in gRPC: %v", err)

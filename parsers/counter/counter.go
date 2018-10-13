@@ -12,10 +12,10 @@ import (
 
 type CounterParser struct {
 	Name     string
-	Metadata []models.MetadataItem
+	Metadata models.Metadata
 }
 
-func (p *CounterParser) GetMetadata() []models.MetadataItem {
+func (p *CounterParser) GetMetadata() models.Metadata {
 	return p.Metadata
 }
 
@@ -40,8 +40,8 @@ func (p *CounterParser) Parse(reader io.Reader) (io.Reader, error) {
 		}
 	}
 
-	p.Metadata = []models.MetadataItem{
-		{"bytes": fmt.Sprintf("%d", ctr)},
+	p.Metadata = models.Metadata{
+		"bytes": fmt.Sprintf("%d", ctr),
 	}
 
 	return nil, nil

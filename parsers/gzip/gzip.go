@@ -12,10 +12,10 @@ import (
 )
 
 type GzipParser struct {
-	Metadata []models.MetadataItem
+	Metadata models.Metadata
 }
 
-func (p *GzipParser) GetMetadata() []models.MetadataItem {
+func (p *GzipParser) GetMetadata() models.Metadata {
 	return p.Metadata
 }
 
@@ -44,10 +44,10 @@ func (p *GzipParser) Parse(r io.Reader) (io.Reader, error) {
 
 	// var meta models.MetadataItem
 	// meta := models.MetadataItem{ "name": name }
-	p.Metadata = []models.MetadataItem{
-		{"name": name,
-			"comment":  comment,
-			"modified": modtime.String()},
+	p.Metadata = models.Metadata{
+		"name": name,
+        "comment":  comment,
+        "modified": modtime.String(),
 	}
 	return buf, nil
 }

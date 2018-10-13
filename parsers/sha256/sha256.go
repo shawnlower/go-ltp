@@ -13,10 +13,10 @@ import (
 
 type Sha256Parser struct {
 	Name     string
-	Metadata []models.MetadataItem
+	Metadata models.Metadata
 }
 
-func (p *Sha256Parser) GetMetadata() []models.MetadataItem {
+func (p *Sha256Parser) GetMetadata() models.Metadata {
 	return p.Metadata
 }
 
@@ -28,8 +28,8 @@ func (p *Sha256Parser) Parse(r io.Reader) (io.Reader, error) {
 	h := sha256.New()
 	_, err := io.Copy(h, r)
 
-	p.Metadata = []models.MetadataItem{
-		{"hash": fmt.Sprintf("%x", h.Sum(nil))},
+	p.Metadata = models.Metadata{
+		"hash": fmt.Sprintf("%x", h.Sum(nil)),
 	}
 
 	return nil, err

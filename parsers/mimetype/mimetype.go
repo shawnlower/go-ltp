@@ -16,10 +16,10 @@ import (
 
 
 type MimetypeParser struct {
-	Metadata []models.MetadataItem
+	Metadata models.Metadata
 }
 
-func (p *MimetypeParser) GetMetadata() []models.MetadataItem {
+func (p *MimetypeParser) GetMetadata() models.Metadata {
 	return p.Metadata
 }
 
@@ -47,8 +47,8 @@ func (p *MimetypeParser) Parse(r io.Reader) (io.Reader, error) {
 		}
 	}
 
-	p.Metadata = []models.MetadataItem{
-		{"mime-type": mimetype},
+	p.Metadata = models.Metadata{
+		"mime-type": mimetype,
 	}
 
 	return r, nil

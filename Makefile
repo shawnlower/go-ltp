@@ -27,3 +27,7 @@ binaries: $(BINARIES)
 bin/%: cmd/%
 	@echo "Building $@"
 	go build -o ./$@ ./$<
+
+ltpd: bin/ltpd
+
+ltpcli: bin/ltpcli

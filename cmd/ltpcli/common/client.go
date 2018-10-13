@@ -26,7 +26,6 @@ import (
 	"github.com/shawnlower/go-ltp/api"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -41,7 +40,7 @@ type ClientConfig struct {
     CACert string;
 }
 
-func GetClient(cmd *cobra.Command) (api.APIClient, context.Context, error) {
+func GetClient() (api.APIClient, context.Context, error) {
     config := &ClientConfig{
         ServerUrl : strings.ToLower(viper.GetString("remote.url")),
         ClientCert : viper.GetString("remote.cert"),

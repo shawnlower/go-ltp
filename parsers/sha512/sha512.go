@@ -17,10 +17,10 @@ func GetMetadataJson() string {
 
 type Sha512Parser struct {
 	Name     string
-	Metadata []models.MetadataItem
+	Metadata models.Metadata
 }
 
-func (p *Sha512Parser) GetMetadata() []models.MetadataItem {
+func (p *Sha512Parser) GetMetadata() models.Metadata {
 	return p.Metadata
 }
 
@@ -32,8 +32,8 @@ func (p *Sha512Parser) Parse(r io.Reader) (io.Reader, error) {
 	h := sha512.New()
 	_, err := io.Copy(h, r)
 
-	p.Metadata = []models.MetadataItem{
-		{"hash": fmt.Sprintf("%x", h.Sum(nil))},
+	p.Metadata = models.Metadata{
+		"hash": fmt.Sprintf("%x", h.Sum(nil)),
 	}
 	return nil, err
 }

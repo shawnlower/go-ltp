@@ -8,11 +8,13 @@ import (
 type Input struct {
 	Name     string
 	Reader   io.Reader
-	Metadata []MetadataItem
+	Metadata Metadata
     Item     *api.Item
+    AsyncParsers  []Parser
+    SerialParsers  []Parser
 }
 
-type MetadataItem map[string]string
+type Metadata map[string]string
 
 type JsonMetadata struct {
 	Source struct {
@@ -24,11 +26,11 @@ type JsonMetadata struct {
 type JsonMetaItem struct {
 	Parser string         `json:"parser"`
 	Type   string         `json:"type"`
-	Items  []MetadataItem `json:"items"`
+	Items  Metadata `json:"items"`
 }
 
 type Parser interface {
 	Parse(r io.Reader) (io.Reader, error)
 	GetName() string
-	GetMetadata() []MetadataItem
+	GetMetadata() Metadata
 }

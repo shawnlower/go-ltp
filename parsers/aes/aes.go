@@ -33,10 +33,10 @@ const (
 
 type AESParser struct {
 	Key      string
-	Metadata []models.MetadataItem
+	Metadata models.Metadata
 }
 
-func (p *AESParser) GetMetadata() []models.MetadataItem {
+func (p *AESParser) GetMetadata() models.Metadata {
 	return p.Metadata
 }
 
@@ -90,8 +90,8 @@ func (p *AESParser) Parse(r io.Reader) (io.Reader, error) {
 
 	log.Debug(fmt.Sprintf("Using nonce: %x", nonce))
 
-	p.Metadata = []models.MetadataItem{
-		{"cipher": "aes-256-gcm"},
+	p.Metadata = models.Metadata{
+        "cipher": "aes-256-gcm",
 	}
 
 	return bytes.NewBuffer(buf), nil
