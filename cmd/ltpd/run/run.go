@@ -78,7 +78,7 @@ func RunServer(cmd *cobra.Command, args []string) error {
             srv, done = server.NewMutualTLSGrpcServer(host, port,
                 config.ServerCert, config.ServerKey, config.CACert)
         } else if config.AuthMethod == "insecure" {
-            srv, _ = server.NewInsecureGrpcServer(host, port)
+            srv, done = server.NewInsecureGrpcServer(host, port)
         } else {
             return &api.ErrInvalidAuthMethod{Method: config.AuthMethod}
         }

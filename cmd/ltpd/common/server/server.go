@@ -73,7 +73,7 @@ func (s *Server) init() error {
 }
 
 // Creates a new server with mandatory mutual-TLS authentication
-func NewInsecureGrpcServer(host string, port string) (*grpc.Server, error) {
+func NewInsecureGrpcServer(host string, port string) (*grpc.Server, chan error) {
 
     // Get credentials
 
@@ -84,17 +84,14 @@ func NewInsecureGrpcServer(host string, port string) (*grpc.Server, error) {
 	reflection.Register(server)
 
     // Setup network listener
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", host, port))
-	if err != nil {
-        log.Fatalf("failed to listen: %v", err)
-	}
+    done := make(chan error, 1)
+    go func() {
+        lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", host, port))
+        err = server.Serve(lis)
+        done <-err
+    }()
 
-	if err := server.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
-    log.Debug("Serve finished.")
-
-    return server, nil
+    return server, done
 }
 
 // Creates a new server with mandatory mutual-TLS authentication
