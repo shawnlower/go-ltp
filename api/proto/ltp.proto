@@ -73,7 +73,12 @@ message CreateItemResponse {
     Item item = 1;
 }
 
+message ServerInfoResponse {
+    map<string, string> InfoItems = 1;
+}
+
 service API {
     rpc GetVersion(Empty) returns (VersionResponse);
+    rpc GetServerInfo(Empty) returns (ServerInfoResponse);
     rpc CreateItem(CreateItemRequest) returns (CreateItemResponse);
 }

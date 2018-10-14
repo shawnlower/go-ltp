@@ -41,10 +41,18 @@ func infoCommand(cmd *cobra.Command, args []string) {
 	fmt.Println("info called with ", args)
 
 	c, ctx, err := common.GetClient()
-	r, err := c.GetVersion(ctx, &proto.Empty{})
+	verResp, err := c.GetVersion(ctx, &proto.Empty{})
 	if err != nil {
 		log.Fatalf("Error in gRPC: %v", err)
 	}
-	log.Printf("Received via gRPC: %s", r.VersionString)
+	log.Printf("Received via gRPC: %s", verResp.VersionString)
 
+    infoResp, err := c.GetServerInfo(ctx, &proto.Empty{})
+	if err != nil {
+		log.Fatalf("Error in gRPC: %v", err)
+	}
+    log.Printf("Received via gRPC: ")
+    for k, v := range infoResp.InfoItems {
+        log.Printf("[%s]=[%s]", k, v)
+    }
 }

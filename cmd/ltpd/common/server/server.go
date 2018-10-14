@@ -33,6 +33,17 @@ func (s *Server) GetVersion(ctx context.Context, in *proto.Empty) (*proto.Versio
 	return &proto.VersionResponse{VersionString: "LTP Server v0.0.0"}, nil
 }
 
+func (s *Server) GetServerInfo(ctx context.Context, in *proto.Empty) (*proto.ServerInfoResponse, error) {
+	log.Debug(fmt.Sprintf("GetServerInfo called. ctx: %#v\n", ctx))
+
+    info := map[string]string{
+        "Server name": "Quad Damage",
+        "Quads Stored": fmt.Sprintf("%d", store.QuadStore.Size()),
+    }
+
+    return &proto.ServerInfoResponse{InfoItems: info}, nil
+}
+
 // Pretty-print the metadata from a request
 func PprintMeta(md metadata.MD) {
     var line string
