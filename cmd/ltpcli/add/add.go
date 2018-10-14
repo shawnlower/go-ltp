@@ -1,4 +1,4 @@
-// Copyright © 2018 NAME HERE <EMAIL ADDRESS>
+// Copyright © 2018 Shawn Lower <shawn@shawnlower.com>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import (
 	"sync"
 
 	"github.com/shawnlower/go-ltp/api"
+	"github.com/shawnlower/go-ltp/api/proto"
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/common"
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/common/models"
 	"github.com/shawnlower/go-ltp/parsers"
@@ -94,14 +95,18 @@ func addCommand(cmd *cobra.Command, args []string) {
         //   -n: A name for the new item; this becomes the primaryLabel
         //   -t: A type for the new item
         name, _ := cmd.Flags().GetString("name")
-        typeUri, err := cmd.Flags().GetString("type")
+        typeIRI, err := cmd.Flags().GetString("type")
 
-        if name == "" || typeUri == "" {
+        if name == "" || typeIRI == "" {
             log.Fatal("No inputs specified. Use '-' for stdin.")
         }
 
         // Create item request
-        req, err := api.NewCreateItemRequest(typeUri)
+        i, err := api.NewItem(api.IRI(typeIRI))
+        if err != nil {
+            log.Fatalf("Error creating Item: %v", err)
+        }
+        req, err := i.ToRequest()
         if err != nil {
             log.Fatalf("Error creating ItemRequest: %v", err)
         }
@@ -128,12 +133,12 @@ func addCommand(cmd *cobra.Command, args []string) {
     inputString := args[0]
     if inputString == "-" {
         log.Info("Reading from stdin...")
-        item, _ := api.NewItem("schema:Thing")
+        item, _ := api.NewItem(api.IRI("schema:Thing"))
         input = models.Input{
             Name: "stdin",
             Reader: os.Stdin,
             Metadata: models.Metadata{"filename": "-"},
-            Item: item,
+            Item: &item,
         }
     } else if m, _ := regexp.MatchString("https?://", inputString); m {
         // Call HTTP fetch module to retrieve page
@@ -157,12 +162,12 @@ func addCommand(cmd *cobra.Command, args []string) {
             os.Exit(1)
         }
 
-        item, _ := api.NewItem("schema:Thing")
+        item, _ := api.NewItem(api.IRI("schema:Thing"))
         input = models.Input{
             Name: "file",
             Reader: fd,
             Metadata: models.Metadata{"filename": fd.Name()},
-            Item: item,
+            Item: &item,
         }
     }
 
@@ -227,6 +232,17 @@ func handleInput(input models.Input) error {
     // The pipe must be closed to allow all inputs to exit
     serialPipeW.Close()
     wg.Wait()
+
+    // Get the label to use for the item. This may be either
+    // - From the -n argument, or
+    // - From a 'name', or primaryLabel property
+
+    // Determine the type of the item from the parsers' outputs
+
+    // Pass to any outputs (localfile, client, gcs, etc)
+
+    // Submit the CreateItemRequest
+
 
     // Construct filename based on hash of the contents.
     var datafile, metadatafile string
@@ -352,16 +368,18 @@ func inputToJson(input *models.Input, asyncParsers *[]models.Parser,
 	return jsonDoc, nil
 }
 
-func remoteWriter(in models.Input, c api.APIClient, ctx context.Context) error {
+func remoteWriter(in models.Input, c proto.APIClient, ctx context.Context) error {
 
     for _, parser := range(in.AsyncParsers) {
         metadata := parser.GetMetadata()
         for k, v := range metadata  {
-            s := in.Item.Uri
+            s := in.Item.IRI
             p := k
             o := v
             g := fmt.Sprintf("ltpcli.%s", parser.GetName())
             log.Debugf("%s.async: <%s> <%s> <%s>", g, s, p, o)
+            prop := api.NewProperty(api.IRI(p))
+            in.Item.AddProperty(*prop, api.IRI(o))
         }
     }
 
@@ -373,32 +391,23 @@ func remoteWriter(in models.Input, c api.APIClient, ctx context.Context) error {
             o := v
             g := fmt.Sprintf("ltpcli.%s", parser.GetName())
             log.Debugf("%s.serial: <%s> <%s> <%s>", g, s, p, o)
+            prop := api.NewProperty(api.IRI(p))
+            in.Item.AddProperty(*prop, api.IRI(o))
         }
     }
 
-    // Add statements to the item
-    s, err := api.NewStatement("sub", "pred", "obj", nil)
-    in.Item.Statements = append(in.Item.Statements, s)
-
     // Determine Item type
     // itemType := in.Item.GetType()
-    itemType := "http://schema.org/Thing"
+    // itemType := "http://schema.org/Thing"
+    log.Warning("Unable to set item type.")
 
     // Determine Item label
 
-    req, err := api.NewCreateItemRequest(itemType)
+    req, err := in.Item.ToRequest()
     if err != nil {
-		log.Fatalf("Error calling CreateItemRequest: %v", err)
+        log.Fatalf("Error creating ItemRequest: %v", err)
     }
 
-    for _, s := range(in.Item.Statements) {
-        req.Statements = append(req.Statements, s)
-        log.Debugf("Statement: %s", s)
-    }
-    log.Debugf("%d statements", len(in.Item.Statements))
-    log.Debugf("%d statements", len(req.Statements))
-    // copy(in.Item.Statements, req.Statements)
-    // copy(req.Statements, in.Item.Statements)
 	resp, err := c.CreateItem(ctx, req)
     log.Debugf("Sending request %s with %d statements", req, len(req.Statements))
     if err != nil {

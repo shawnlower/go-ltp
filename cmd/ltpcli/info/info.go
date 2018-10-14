@@ -17,7 +17,7 @@ package info
 import (
 	"fmt"
 
-	"github.com/shawnlower/go-ltp/api"
+	"github.com/shawnlower/go-ltp/api/proto"
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/common"
 
 	log "github.com/sirupsen/logrus"
@@ -41,7 +41,7 @@ func infoCommand(cmd *cobra.Command, args []string) {
 	fmt.Println("info called with ", args)
 
 	c, ctx, err := common.GetClient()
-	r, err := c.GetVersion(ctx, &api.Empty{})
+	r, err := c.GetVersion(ctx, &proto.Empty{})
 	if err != nil {
 		log.Fatalf("Error in gRPC: %v", err)
 	}

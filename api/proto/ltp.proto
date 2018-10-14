@@ -3,7 +3,7 @@ syntax = "proto3";
 // Compile w/ e.g.:
 // $ protoc ltp.proto --go_out=plugins=grpc:.
 
-package api;
+package proto;
 
 import "google/protobuf/timestamp.proto";
 
@@ -37,13 +37,9 @@ message VersionResponse {
 }
 
 message Item {
-    string Uri = 1;
-    repeated ItemType ItemTypes = 2;
+    string IRI = 1;
+    repeated string ItemTypes = 2;
     repeated Statement Statements = 3;
-}
-
-message ItemType {
-    string Uri = 1;
 }
 
 // A semantic 'statement' about the world. Can generally be viewed as
@@ -69,7 +65,7 @@ message Scope {
 }
 
 message CreateItemRequest {
-    repeated ItemType ItemTypes = 1;
+    repeated string ItemTypes = 1;
     repeated Statement Statements = 2;
 }
 

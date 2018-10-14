@@ -8,6 +8,7 @@ import (
 	"net"
 
 	"github.com/shawnlower/go-ltp/api"
+	"github.com/shawnlower/go-ltp/api/proto"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -17,12 +18,12 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-func (s *Server) GetVersion(ctx context.Context, in *api.Empty) (*api.VersionResponse, error) {
+func (s *Server) GetVersion(ctx context.Context, in *proto.Empty) (*proto.VersionResponse, error) {
 	log.Debug(fmt.Sprintf("GetVersion called. ctx: %#v\n", ctx))
-	return &api.VersionResponse{VersionString: "LTP Server v0.0.0"}, nil
+	return &proto.VersionResponse{VersionString: "LTP Server v0.0.0"}, nil
 }
 
-func (s *Server) CreateItem(ctx context.Context, request *api.CreateItemRequest) (*api.CreateItemResponse, error) {
+func (s *Server) CreateItem(ctx context.Context, request *proto.CreateItemRequest) (*proto.CreateItemResponse, error) {
 	log.Debug("CreateItem called: ", request)
 
 	uuid, err := uuid.NewUUID()
@@ -30,14 +31,14 @@ func (s *Server) CreateItem(ctx context.Context, request *api.CreateItemRequest)
         return nil, api.ErrInvalidItem
 	}
 
-	item := &api.Item{
-		Uri:       "http://shawnlower.net/i/" + uuid.String(),
+	item := &proto.Item{
+		IRI:       "http://shawnlower.net/i/" + uuid.String(),
 		ItemTypes: request.ItemTypes,
 	}
 
 	log.Debug("api.Item: ", item)
 
-	resp := &api.CreateItemResponse{
+	resp := &proto.CreateItemResponse{
 		Item: item,
 	}
 	return resp, nil
@@ -51,7 +52,7 @@ func NewInsecureGrpcServer(host string, port string) (*grpc.Server, error) {
     // Get credentials
 
 	server := grpc.NewServer()
-	api.RegisterAPIServer(server, &Server{})
+	proto.RegisterAPIServer(server, &Server{})
 
 	// Register reflection service on gRPC server.
 	reflection.Register(server)
@@ -95,7 +96,7 @@ func NewMutualTLSGrpcServer(host string, port string, certFile string, keyFile s
     })
 
 	server := grpc.NewServer(grpc.Creds(creds))
-	api.RegisterAPIServer(server, &Server{})
+	proto.RegisterAPIServer(server, &Server{})
 
 	// Register reflection service on gRPC server.
 	reflection.Register(server)

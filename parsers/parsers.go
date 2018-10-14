@@ -125,10 +125,10 @@ func SerialParsers(reader io.Reader, parsers []models.Parser) (r io.Reader, err 
 func MetadataToStatements(mm models.Metadata) {
     for _, m := range(mm) {
         s := &api.Statement{
-            Subject: "",
-            Predicate: "",
-            Object: "",
-            Scope: nil,
+            Subject: api.IRI(""),
+            Predicate: api.IRI(""),
+            Object: api.IRI(""),
+            Label: api.IRI(""),
         }
         log.Debugf("MetadataItem(%#v) Statement(%#v)", m, s)
     }

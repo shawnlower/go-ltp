@@ -1,70 +1,213 @@
+// Copyright © 2018 Shawn Lower <shawn@shawnlower.com>
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Package api defines the API used by the client and server component.
+// Serialization and marshalling to protobuf is done in the 'proto' package
 package api
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"net/url"
+    // "encoding/json"
+    "errors"
+    "fmt"
+    "net/url"
     "regexp"
-	"time"
+
+	"github.com/shawnlower/go-ltp/api/proto"
+
 )
 
 const (
 	DEFAULT_ITEM_TYPE = "http://schema.org/Thing"
 )
 
-// Returns a new item object of the type specified.
+// The graph is the backing store containing all item relationships, and
+// any literal data for items.
 //
+//
+// Client:
+// i := NewItem('<schema:Book>') // RDF type is Book
+// i.AddProperty('<schema:name>', 'The Indispensable Calvin and Hobbes')
+//
+// c := NewClient()
+// req := NewCreateItemRequest(i)
+// c.CreateItem(req)
+
+// Server:
+// store := NewStore(prefix='http://shawnlower.net/i/')
+// url := store.MakeUrl()    // return prefix + uuid()
+//
+// scope := req.SessionID()
+
+// store.AddQuad(scope, url)
+// req.Item
+// g.AddQuad(req.
+
+
+// An Item is the basic type used for describing resources.
+// It is composed of
+// - The URL that can be used to retrieve the resource
+// - One or more IRIs that define the type of item (e.g. RDF Type)
+// - A list of additional properties that apply to the item
+
+// Example:
+//   i := &Item{
+//     IRI("") // URL initially undefined
+//     ItemType("schema:Movie") // Type
+//   }
+//   i.AddProperty(IRI("schema:name"), String("Transformers"))
+
+type Item struct {
+    IRI IRI
+    ItemTypes []IRI
+    statements []Statement
+}
+
+// Returns a new item object of the type specified.
+
 // Used by the CreateItem implementation, or anywhere that the Item model
 // is used. Does not assign a URL, or commit to the store.
-func NewItem(itemTypeStr string) (i *Item, e error) {
-	// return Item{}, ErrUnimplemented
-	itemType := ItemType{
-		Uri: itemTypeStr,
-	}
-	itemTypes := []*ItemType{&itemType}
+func NewItem(itemType IRI) (Item, error) {
 
-	item := &Item{
-		Uri:       "",
+    itemTypes := []IRI{itemType}
+
+    item := Item{
+		IRI:       "",
 		ItemTypes: itemTypes,
 	}
 
 	return item, nil
 }
 
-func NewCreateItemRequest(itemTypeStr string) (*CreateItemRequest, error) {
+func (i Item) GetStatements() ([]Statement, error) {
+    return i.statements, nil
+}
 
-    if itemTypeStr == "" {
-        return nil, errors.New("NewItemRequest called with empty type string.")
+// AddStatement: Append a statement (s,p,o,l) to an item
+func (i Item) AddStatement(s Statement) error {
+    i.statements = append(i.statements, s)
+    return nil
+}
+
+// AddProperty: Append a property=value pair to an item
+// Example:
+//   i.AddProperty(IRI("schema:name"), String("Transformers"))
+func (i Item) AddProperty(p Property, v Value) error {
+    s := Statement{
+        Subject: Value(i.IRI),
+        Predicate: Value(p.IRI),
+        Object: Value(v),
     }
 
-    var itemTypes []*ItemType
-    if itemTypeStr != "" {
-        uri, err := NormalizeUri(itemTypeStr)
+    i.statements = append(i.statements, s)
+    return nil
+}
+
+type Statement struct {
+    Subject Value
+    Predicate Value
+    Object Value
+    Label Value
+}
+
+type Property struct {
+    IRI IRI
+    Name string
+    Comment string
+}
+
+func NewProperty(iri IRI) *Property {
+    return &Property{
+        IRI: iri,
+    }
+
+}
+
+func (p Property) String() string {
+    return string(p.IRI)
+}
+
+func (p Property) Native() interface{} {
+    return p
+}
+
+// Interface for IRIs, strings, etc
+
+// See also:
+// https://github.com/cayleygraph/cayley/blob/master/quad/value.go
+type Value interface {
+    String() string
+    Native() interface{} // Return closest go type
+}
+
+// IRI: An Internationalized Resource Identifier, similar to a URI
+// https://tools.ietf.org/html/rfc3987
+type IRI string
+
+func (s IRI) String() string {
+    return string(s)
+}
+
+func (s IRI) Native() interface{} {
+    return s
+}
+
+type String string
+
+func (s String) String() string {
+    return string(s)
+}
+
+func (s String) Native() interface{} {
+    return s
+}
+
+// Submit a resource to a remote store
+//     1) Enforce that a type is specified
+//     2) Enforce that at least one property from the type is specified
+//     3) Optionally upload a payload. The payload URL may be the property
+
+// Example:
+//   i := NewItem('<schema:Book>')
+//   p := NewProperty('<schema:name>', 'Kitchen Confidential')
+//   i.AddProperty(p)
+//   i.Validate() // Validate item and properties
+//   c := GetClient()
+
+//   c.CreateItem(i.ToRequest())
+
+func (i Item) ToRequest() (*proto.CreateItemRequest, error) {
+
+    if len(i.ItemTypes) == 0 {
+        return nil, errors.New("Item type is empty")
+    }
+
+    var itemTypes []string
+    for _, itemType := range i.ItemTypes {
+        iri, err := NormalizeIri(itemType)
         if err != nil {
             return nil, errors.New(
-                fmt.Sprintf("Unable to validate type of item: `%s'. Expected a url, e.g. http://schema.org/Book. Error: %v", itemTypeStr, err))
+                fmt.Sprintf("Unable to validate type of item: `%s'. Expected a url, e.g. http://schema.org/Book. Error: %v", i, err))
         }
-        itemTypes = append(itemTypes, &ItemType{Uri: uri.String()})
+        itemTypes = append(itemTypes, iri.String())
     }
 
-    req := &CreateItemRequest{
+    req := &proto.CreateItemRequest{
         ItemTypes: itemTypes,
     }
 
     return req, nil
 }
-
-// Creates a new statement of the type specified
-func NewStatement(s string, p string, o string, c *Scope) (i *Statement, e error) {
-    return &Statement{
-        Subject: s,
-        Predicate: p,
-        Object: o,
-        Scope: c,
-    }, nil
-}
-
 
 // Ensure that a URL is valid, returning it as a url.URL object
 //
@@ -74,28 +217,27 @@ func NewStatement(s string, p string, o string, c *Scope) (i *Statement, e error
 //    The list of namespace prefixes supported can be retrieved via
 //    GetNamespacePrefixes() (or ltpcli list namespaces)
 //    See: https://lov.linkeddata.es/dataset/lov/
-func NormalizeUri(uriString string) (*url.URL, error) {
+func NormalizeIri(iri IRI) (IRI, error) {
 
     var re *regexp.Regexp
     var err error
 
     // Extract the substring of a bracketed <url>, if necessary
     // when the URL matches http/https prefix
-    re, err = regexp.Compile("^<?(https?://.*)>?$")
-	if err != nil {
-		return nil, err
+    if re, err = regexp.Compile("^<?(https?://.*)>?$"); err != nil {
+		return "", err
 	}
-    if m := re.FindStringSubmatch(uriString); len(m) > 1 {
+    if m := re.FindStringSubmatch(iri.String()); len(m) > 1 {
         // We have a URI
-        return url.Parse(m[1]) // Return the parsed url, or the error
+        return iri, nil
     }
 
     // Try for a CURIE
-    uri, err := ExpandCurie(uriString)
+    uri, err := ExpandCurie(iri.String())
     if err != nil {
-        return nil, err
+        return "", err
     } else {
-        return uri, nil
+        return IRI(uri.String()), nil
     }
 }
 
@@ -132,21 +274,14 @@ func ExpandCurie(curieString string) (*url.URL, error) {
 // Returns the scope as a URI.
 // The URI does not contain all attributes of a scope.
 // To serialize an entire scope object, use the GetScopeJson() method
-func (s Scope) GetScopeURI() (uri string, err error) {
-	url := fmt.Sprintf("%s.%s", s.Agent, s.AssertionTime.String())
+// func (s Scope) GetScopeURI() (uri string, err error) {
+// 	url := fmt.Sprintf("%s.%s", s.Agent, s.AssertionTime.String())
 
-	return url, nil
-}
+// 	return url, nil
+// }
 
-// Returns the scope as a JSON decoder
-func (s Scope) GetScopeJSON() (json *json.Decoder, err error) {
-	return nil, ErrUnimplemented
-}
+// // Returns the scope as a JSON decoder
+// func (s Scope) GetScopeJSON() (json *json.Decoder, err error) {
+// 	return nil, ErrUnimplemented
+// }
 
-// An activity is used to group the items currently being viewed or interacted
-// with by the user, in the completion of a task. Synonymous with 'workspace'
-type Activity struct {
-	items   []Item
-	created time.Time
-	updated time.Time
-}
