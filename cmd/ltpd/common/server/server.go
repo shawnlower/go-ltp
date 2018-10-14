@@ -11,6 +11,9 @@ import (
 	"github.com/shawnlower/go-ltp/api"
 	"github.com/shawnlower/go-ltp/api/proto"
 
+    "github.com/cayleygraph/cayley"
+    "github.com/cayleygraph/cayley/graph"
+    "github.com/cayleygraph/cayley/quad"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -18,6 +21,11 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
+
+)
+
+var (
+    store *graph.Handle
 )
 
 func (s *Server) GetVersion(ctx context.Context, in *proto.Empty) (*proto.VersionResponse, error) {
@@ -41,7 +49,7 @@ func PprintMeta(md metadata.MD) {
     log.Debug("CreateItem context: ", line)
 }
 
-func (s *Server) CreateItem(ctx context.Context, request *proto.CreateItemRequest) (*proto.CreateItemResponse, error) {
+func (s *Server) CreateItem(ctx context.Context, req *proto.CreateItemRequest) (*proto.CreateItemResponse, error) {
 	// log.Debug("CreateItem called: ", request)
     md, _ := metadata.FromIncomingContext(ctx)
     PprintMeta(md)
@@ -53,10 +61,15 @@ func (s *Server) CreateItem(ctx context.Context, request *proto.CreateItemReques
 
 	item := &proto.Item{
 		IRI:       "http://shawnlower.net/i/" + uuid.String(),
-		ItemTypes: request.ItemTypes,
+		ItemTypes: req.ItemTypes,
+        Statements: req.Statements,
 	}
 
 	log.Debug("api.Item: ", item)
+
+    for _, statement := range item.GetStatements() {
+        store.AddQuad(quad.Make(statement.Subject, statement.Predicate, statement.Object, item.IRI))
+    }
 
 	resp := &proto.CreateItemResponse{
 		Item: item,
@@ -66,10 +79,36 @@ func (s *Server) CreateItem(ctx context.Context, request *proto.CreateItemReques
 
 type Server struct {}
 
-func (s *Server) init() error {
+func InitServer() error {
 
-    return fmt.Errorf("Failed to initialize store.")
+    var err error
+    store, err = cayley.NewMemoryGraph()
 
+    if err != nil {
+        return fmt.Errorf("Failed to initialize store.")
+    }
+
+    return err
+
+}
+
+func ShutdownServer() error {
+
+    log.Debug("Shutting down server")
+
+    // Now we create the path, to get to our data
+    p := cayley.StartPath(store, quad.String("phrase of the day")).Out(quad.String("is of course"))
+
+    // Now we iterate over results. Arguments:
+    // 1. Optional context used for cancellation.
+    // 2. Flag to optimize query before execution.
+    // 3. Quad store, but we can omit it because we have already built path with it.
+    err := p.Iterate(nil).EachValue(nil, func(value quad.Value){
+        nativeValue := quad.NativeOf(value) // this converts RDF values to normal Go types
+        fmt.Println(nativeValue)
+    })
+
+    return err
 }
 
 // Creates a new server with mandatory mutual-TLS authentication
@@ -83,11 +122,20 @@ func NewInsecureGrpcServer(host string, port string) (*grpc.Server, chan error) 
 	// Register reflection service on gRPC server.
 	reflection.Register(server)
 
-    // Setup network listener
     done := make(chan error, 1)
+
+    // Initialization
+    err := InitServer()
+    if err != nil {
+        done <- err
+        return nil, done
+    }
+
+    // Listen and serve
     go func() {
         lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", host, port))
         err = server.Serve(lis)
+        ShutdownServer()
         done <-err
     }()
 
@@ -125,11 +173,20 @@ func NewMutualTLSGrpcServer(host string, port string, certFile string, keyFile s
 	// Register reflection service on gRPC server.
 	reflection.Register(server)
 
-    // Setup network listener
     done := make(chan error, 1)
+
+    // Initialization
+    err = InitServer()
+    if err != nil {
+        done <- err
+        return nil, done
+    }
+
+    // Listen and serve
     go func() {
         lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", host, port))
         err = server.Serve(lis)
+        ShutdownServer()
         done <-err
     }()
 

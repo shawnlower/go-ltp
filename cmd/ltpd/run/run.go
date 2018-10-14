@@ -95,7 +95,6 @@ func RunServer(cmd *cobra.Command, args []string) error {
             log.Info("Server stats: ", srv.GetServiceInfo())
             time.Sleep(5 * time.Second)
         }
-
     }(srv)
 
     doExit := false
