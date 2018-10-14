@@ -50,10 +50,10 @@ message Item {
 // See also:
 // <http://patterns.dataincubator.org/book/named-graphs.html>
 message Statement {
-    string subject = 1;
-    string predicate = 2;
-    string object = 3;
-    Scope scope = 4;
+    string Subject = 1;
+    string Predicate = 2;
+    string Object = 3;
+    string Label = 4;
 }
 
 // The scope bounds the set of statements or assertions being made by

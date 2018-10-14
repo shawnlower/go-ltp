@@ -89,20 +89,22 @@ func addCommand(cmd *cobra.Command, args []string) {
         parserNames []string
     )
 
+    name, _ := cmd.Flags().GetString("name")
+    typeString, _ := cmd.Flags().GetString("type")
+    typeIRI := api.IRI(typeString)
+
     if len(args) == 0 {
         // Calling add with no positional arguments is allowed if
         // we're provided with both:
         //   -n: A name for the new item; this becomes the primaryLabel
         //   -t: A type for the new item
-        name, _ := cmd.Flags().GetString("name")
-        typeIRI, err := cmd.Flags().GetString("type")
 
         if name == "" || typeIRI == "" {
             log.Fatal("No inputs specified. Use '-' for stdin.")
         }
 
         // Create item request
-        i, err := api.NewItem(api.IRI(typeIRI))
+        i, err := api.NewItem(typeIRI)
         if err != nil {
             log.Fatalf("Error creating Item: %v", err)
         }
@@ -133,7 +135,7 @@ func addCommand(cmd *cobra.Command, args []string) {
     inputString := args[0]
     if inputString == "-" {
         log.Info("Reading from stdin...")
-        item, _ := api.NewItem(api.IRI("schema:Thing"))
+        item, _ := api.NewItem(api.IRI(""))
         input = models.Input{
             Name: "stdin",
             Reader: os.Stdin,
@@ -162,13 +164,21 @@ func addCommand(cmd *cobra.Command, args []string) {
             os.Exit(1)
         }
 
-        item, _ := api.NewItem(api.IRI("schema:Thing"))
+        item, _ := api.NewItem(api.IRI(""))
         input = models.Input{
             Name: "file",
             Reader: fd,
             Metadata: models.Metadata{"filename": fd.Name()},
             Item: &item,
         }
+    }
+
+    if len(typeIRI) > 0 {
+        input.Item.AddType(typeIRI)
+    }
+    if len(name) > 0 {
+        prop := api.NewProperty(api.IRI("skos:primaryLabel"))
+        input.Item.AddProperty(*prop, api.String(name))
     }
 
     // Setup our initial list of parsers.
@@ -399,7 +409,10 @@ func remoteWriter(in models.Input, c proto.APIClient, ctx context.Context) error
     // Determine Item type
     // itemType := in.Item.GetType()
     // itemType := "http://schema.org/Thing"
-    log.Warning("Unable to set item type.")
+    if len(in.Item.ItemTypes) == 0 || in.Item.ItemTypes[0] == "" {
+        log.Warning("Unable to set item type.")
+        in.Item.AddType("schema:Thing")
+    }
 
     // Determine Item label
 

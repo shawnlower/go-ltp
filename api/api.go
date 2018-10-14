@@ -94,7 +94,7 @@ func (i Item) GetStatements() ([]Statement, error) {
 }
 
 // AddStatement: Append a statement (s,p,o,l) to an item
-func (i Item) AddStatement(s Statement) error {
+func (i *Item) AddStatement(s Statement) error {
     i.statements = append(i.statements, s)
     return nil
 }
@@ -102,14 +102,27 @@ func (i Item) AddStatement(s Statement) error {
 // AddProperty: Append a property=value pair to an item
 // Example:
 //   i.AddProperty(IRI("schema:name"), String("Transformers"))
-func (i Item) AddProperty(p Property, v Value) error {
+func (i *Item) AddProperty(p Property, v Value) error {
     s := Statement{
         Subject: Value(i.IRI),
         Predicate: Value(p.IRI),
         Object: Value(v),
+        Label: IRI(""),
     }
 
     i.statements = append(i.statements, s)
+    i.AddStatement(s)
+    return nil
+}
+
+// Add a type to an Item
+// If a single empty-string type exists, it will be replaced with the
+// type specified
+func (i Item) AddType(iri IRI) error {
+    if len(i.ItemTypes) == 1 && i.ItemTypes[0] == "" {
+        i.ItemTypes[0] = iri
+    }
+    i.ItemTypes = append(i.ItemTypes, iri)
     return nil
 }
 
@@ -206,6 +219,16 @@ func (i Item) ToRequest() (*proto.CreateItemRequest, error) {
         ItemTypes: itemTypes,
     }
 
+    statements, _ := i.GetStatements()
+    for _, statement := range statements {
+        statementPb := &proto.Statement{
+            Subject: statement.Subject.String(),
+            Predicate: statement.Predicate.String(),
+            Object: statement.Object.String(),
+            Label: statement.Label.String(),
+        }
+        req.Statements = append(req.Statements, statementPb)
+    }
     return req, nil
 }
 
