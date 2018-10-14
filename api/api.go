@@ -125,11 +125,38 @@ func (i Item) AddType(iri IRI) error {
     return nil
 }
 
+// Add multiple types to an Item
+func (i Item) AddTypes(iriList []IRI) error {
+    if len(iriList) == 0 {
+        return nil
+    }
+    for _, iri := range iriList {
+        err := i.AddType(iri)
+        if err != nil {
+            return err
+        }
+    }
+    return nil
+}
+
 type Statement struct {
     Subject Value
     Predicate Value
     Object Value
     Label Value
+}
+
+func GetTypeFromStatements(statements []Statement) ([]IRI, error) {
+    var itemTypes []IRI
+
+    for _, statement := range statements {
+        // BUG: Need to expand IRI
+        if statement.Predicate == IRI("rdf:type") {
+            itemTypes = append(itemTypes, IRI(statement.Object.String()))
+        }
+    }
+    return itemTypes, nil
+
 }
 
 type Property struct {

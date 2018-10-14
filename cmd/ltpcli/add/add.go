@@ -404,8 +404,13 @@ func remoteWriter(in models.Input, c proto.APIClient, ctx context.Context) error
     // itemType := in.Item.GetType()
     // itemType := "http://schema.org/Thing"
     if len(in.Item.ItemTypes) == 0 || in.Item.ItemTypes[0] == "" {
-        log.Warning("Unable to set item type.")
-        in.Item.AddType("schema:Thing")
+        statements, _ := in.Item.GetStatements()
+        if types, err := api.GetTypeFromStatements(statements); len(types) == 0 || err != nil {
+            log.Warning("Unable to set item type.")
+            in.Item.AddType("schema:Thing")
+        } else {
+            in.Item.AddTypes(types)
+        }
     }
 
     // Determine Item label

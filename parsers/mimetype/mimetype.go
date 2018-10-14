@@ -20,7 +20,8 @@ import (
 )
 
 var typeMap map[string]api.IRI = map[string]api.IRI{
-    "text/plain": api.IRI("schema:TextDigitalDocument"),
+    "^text/plain": api.IRI("schema:TextDigitalDocument"),
+    "^image/.*": api.IRI("schema:Photograph"),
 }
 
 
