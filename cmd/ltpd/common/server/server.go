@@ -6,6 +6,7 @@ import (
 	"fmt"
     "io/ioutil"
 	"net"
+    // "sync"
 
 	"github.com/shawnlower/go-ltp/api"
 	"github.com/shawnlower/go-ltp/api/proto"
@@ -15,6 +16,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -23,8 +25,26 @@ func (s *Server) GetVersion(ctx context.Context, in *proto.Empty) (*proto.Versio
 	return &proto.VersionResponse{VersionString: "LTP Server v0.0.0"}, nil
 }
 
+// Pretty-print the metadata from a request
+func PprintMeta(md metadata.MD) {
+    var line string
+    for k, items := range md {
+        line += fmt.Sprintf(" %s=[", k)
+        for i, v := range items {
+            if i > 0 {
+                line += ", "
+            }
+            line += fmt.Sprintf("%s", v)
+        }
+        line += fmt.Sprintf("]")
+    }
+    log.Debug("CreateItem context: ", line)
+}
+
 func (s *Server) CreateItem(ctx context.Context, request *proto.CreateItemRequest) (*proto.CreateItemResponse, error) {
-	log.Debug("CreateItem called: ", request)
+	// log.Debug("CreateItem called: ", request)
+    md, _ := metadata.FromIncomingContext(ctx)
+    PprintMeta(md)
 
 	uuid, err := uuid.NewUUID()
 	if err != nil {
@@ -46,6 +66,12 @@ func (s *Server) CreateItem(ctx context.Context, request *proto.CreateItemReques
 
 type Server struct {}
 
+func (s *Server) init() error {
+
+    return fmt.Errorf("Failed to initialize store.")
+
+}
+
 // Creates a new server with mandatory mutual-TLS authentication
 func NewInsecureGrpcServer(host string, port string) (*grpc.Server, error) {
 
@@ -66,12 +92,13 @@ func NewInsecureGrpcServer(host string, port string) (*grpc.Server, error) {
 	if err := server.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
+    log.Debug("Serve finished.")
 
     return server, nil
 }
 
 // Creates a new server with mandatory mutual-TLS authentication
-func NewMutualTLSGrpcServer(host string, port string, certFile string, keyFile string, caCertFile string) (*grpc.Server, error) {
+func NewMutualTLSGrpcServer(host string, port string, certFile string, keyFile string, caCertFile string) (*grpc.Server, chan error) {
 
     // Get credentials
     certificate, err := tls.LoadX509KeyPair(certFile, keyFile)
@@ -102,14 +129,12 @@ func NewMutualTLSGrpcServer(host string, port string, certFile string, keyFile s
 	reflection.Register(server)
 
     // Setup network listener
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", host, port))
-	if err != nil {
-		return nil, fmt.Errorf("failed to listen: %v", err)
-	}
+    done := make(chan error, 1)
+    go func() {
+        lis, err := net.Listen("tcp", fmt.Sprintf("%s:%s", host, port))
+        err = server.Serve(lis)
+        done <-err
+    }()
 
-	if err := server.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
-
-    return server, nil
+    return server, done
 }
