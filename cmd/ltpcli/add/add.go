@@ -16,7 +16,7 @@ package add
 
 import (
 	"bytes"
-	"encoding/json"
+	// "encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -256,16 +256,16 @@ func handleInput(input models.Input) error {
 
     // Construct filename based on hash of the contents.
     var datafile, metadatafile string
-    for _, parser := range input.AsyncParsers {
-        metadata := parser.GetMetadata()
-        for _, k := range metadata {
-            if k == "hash" {
-                datafile = fmt.Sprintf("%s.data", metadata[k])
-                metadatafile = fmt.Sprintf("%s.json", metadata[k])
-                log.Debug("Got filename ", datafile)
-            }
-        }
-    }
+//     for _, parser := range input.AsyncParsers {
+//         metadata := parser.GetMetadata()
+//         for _, k := range metadata {
+//             if k == "hash" {
+//                 datafile = fmt.Sprintf("%s.data", metadata[k])
+//                 metadatafile = fmt.Sprintf("%s.json", metadata[k])
+//                 log.Debug("Got filename ", datafile)
+//             }
+//         }
+//     }
     if datafile == "" {
         datafile = fmt.Sprintf("output.data")
         metadatafile = fmt.Sprintf("output.json")
@@ -301,108 +301,102 @@ func handleInput(input models.Input) error {
     return err
 }
 
-func inputToJson(input *models.Input, asyncParsers *[]models.Parser,
-	serialParsers *[]models.Parser) (jsonDoc []byte, err error) {
-
-	/*
-	   Return a JSON document ( []byte ) from an input, and associated parsers.
-	       {
-	           "source": {
-	               "name": input.Name,
-	           },
-	           "metadata": [ {
-	               "parser": "SHA256",
-	               "type": "async",
-	               "items": [
-	                   { Key: Value },
-	                   { Key: Value },
-	                   { Key: Value } ]
-	           }, {
-	               "parser": "AES",
-	               "type": "serial",
-	               "items": [
-	                   { Key: Value },
-	                   { Key: Value },
-	                   { Key: Value } ]
-	         } ] } }
-	*/
-
-	// Setup our initial JSON object with the top-level keys
-	jmeta := models.JsonMetadata{}
-
-	jmeta.Source.Name = input.Name
-
-	// Add any metadata from the input itself
-	if len(input.Metadata) > 0 {
-		metadata := models.JsonMetaItem{}
-		metadata.Parser = input.Name
-		metadata.Type = "input"
-
-		// Add per-parser metadata
-        metadata.Items = input.Metadata
-        log.Debug(fmt.Sprintf("meta: input.%s %#v", input.Name,
-            input.Metadata))
-		jmeta.Metadata = append(jmeta.Metadata, metadata)
-	}
-
-	// Add async
-	for _, parser := range *asyncParsers {
-		metadata := models.JsonMetaItem{}
-		metadata.Parser = parser.GetName()
-		metadata.Type = "async"
-
-        // Test fetching meta
-        parsers.MetadataToStatements(parser.GetMetadata())
-        // log.Debugf("*** METADATA(%#v) - Statements(%#v)\n", metadataItem,
-
-		// Add per-parser metadata
-        metadata.Items = parser.GetMetadata()
-        log.Debug(fmt.Sprintf("meta: async.%s %#v", input.Name,
-            metadata.Items))
-		jmeta.Metadata = append(jmeta.Metadata, metadata)
-	}
-
-	// Add serial
-	for _, parser := range *serialParsers {
-		metadata := models.JsonMetaItem{}
-		metadata.Parser = parser.GetName()
-		metadata.Type = "serial"
-
-		// Add per-parser metadata
-        metadata.Items = parser.GetMetadata()
-        log.Debug(fmt.Sprintf("meta: serial.%s %#v", input.Name, metadata.Items))
-		jmeta.Metadata = append(jmeta.Metadata, metadata)
-	}
-
-	jsonDoc, _ = json.MarshalIndent(jmeta, "", "  ")
-	return jsonDoc, nil
-}
+// func inputToJson(input *models.Input, asyncParsers *[]models.Parser,
+// 	serialParsers *[]models.Parser) (jsonDoc []byte, err error) {
+// 
+// 	/*
+// 	   Return a JSON document ( []byte ) from an input, and associated parsers.
+// 	       {
+// 	           "source": {
+// 	               "name": input.Name,
+// 	           },
+// 	           "metadata": [ {
+// 	               "parser": "SHA256",
+// 	               "type": "async",
+// 	               "items": [
+// 	                   { Key: Value },
+// 	                   { Key: Value },
+// 	                   { Key: Value } ]
+// 	           }, {
+// 	               "parser": "AES",
+// 	               "type": "serial",
+// 	               "items": [
+// 	                   { Key: Value },
+// 	                   { Key: Value },
+// 	                   { Key: Value } ]
+// 	         } ] } }
+// 	*/
+// 
+// 	// Setup our initial JSON object with the top-level keys
+// 	jmeta := models.JsonMetadata{}
+// 
+// 	jmeta.Source.Name = input.Name
+// 
+// 	// Add any metadata from the input itself
+// 	if len(input.Metadata) > 0 {
+// 		metadata := models.JsonMetaItem{}
+// 		metadata.Parser = input.Name
+// 		metadata.Type = "input"
+// 
+// 		// Add per-parser metadata
+//         metadata.Items = input.Metadata
+//         log.Debug(fmt.Sprintf("meta: input.%s %#v", input.Name,
+//             input.Metadata))
+// 		jmeta.Metadata = append(jmeta.Metadata, metadata)
+// 	}
+// 
+// 	// Add async
+// 	for _, parser := range *asyncParsers {
+// 		metadata := models.JsonMetaItem{}
+// 		metadata.Parser = parser.GetName()
+// 		metadata.Type = "async"
+// 
+//         // Test fetching meta
+//         parsers.MetadataToStatements(parser.GetMetadata())
+//         // log.Debugf("*** METADATA(%#v) - Statements(%#v)\n", metadataItem,
+// 
+// 		// Add per-parser metadata
+//         metadata.Items = parser.GetMetadata()
+//         log.Debug(fmt.Sprintf("meta: async.%s %#v", input.Name,
+//             metadata.Items))
+// 		jmeta.Metadata = append(jmeta.Metadata, metadata)
+// 	}
+// 
+// 	// Add serial
+// 	for _, parser := range *serialParsers {
+// 		metadata := models.JsonMetaItem{}
+// 		metadata.Parser = parser.GetName()
+// 		metadata.Type = "serial"
+// 
+// 		// Add per-parser metadata
+//         metadata.Items = parser.GetMetadata()
+//         log.Debug(fmt.Sprintf("meta: serial.%s %#v", input.Name, metadata.Items))
+// 		jmeta.Metadata = append(jmeta.Metadata, metadata)
+// 	}
+// 
+// 	jsonDoc, _ = json.MarshalIndent(jmeta, "", "  ")
+// 	return jsonDoc, nil
+// }
 
 func remoteWriter(in models.Input, c proto.APIClient, ctx context.Context) error {
 
     for _, parser := range(in.AsyncParsers) {
-        metadata := parser.GetMetadata()
-        for k, v := range metadata  {
-            s := in.Item.IRI
-            p := k
-            o := v
-            g := fmt.Sprintf("ltpcli.%s", parser.GetName())
-            log.Debugf("%s.async: <%s> <%s> <%s>", g, s, p, o)
-            prop := api.NewProperty(api.IRI(p))
-            in.Item.AddProperty(*prop, api.IRI(o))
+        statements := parser.GetStatements()
+        for _, statement := range statements {
+            statement.Subject = in.Item.IRI
+            statement.Label = api.String(fmt.Sprintf("ltpcli.%s", parser.GetName()))
+            log.Debugf("Statement: %#v ", statement)
+            in.Item.AddStatement(statement)
         }
     }
 
     for _, parser := range(in.SerialParsers) {
-        metadata := parser.GetMetadata()
-        for k, v := range metadata  {
-            s := fmt.Sprintf("item")
-            p := k
-            o := v
-            g := fmt.Sprintf("ltpcli.%s", parser.GetName())
-            log.Debugf("%s.serial: <%s> <%s> <%s>", g, s, p, o)
-            prop := api.NewProperty(api.IRI(p))
-            in.Item.AddProperty(*prop, api.IRI(o))
+        statements := parser.GetStatements()
+        for _, statement := range statements {
+            statement.Subject = in.Item.IRI
+            statement.Label = api.String(fmt.Sprintf("ltpcli.%s", parser.GetName()))
+            log.Debug("Statement: ", statement)
+            in.Item.AddStatement(statement)
         }
     }
 

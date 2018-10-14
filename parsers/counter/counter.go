@@ -1,22 +1,24 @@
 package counter
 
 import (
+	"github.com/shawnlower/go-ltp/api"
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/common/models"
 	"github.com/shawnlower/go-ltp/parsers"
 
 	"fmt"
 	"io"
+    "strconv"
 
 	log "github.com/sirupsen/logrus"
 )
 
 type CounterParser struct {
 	Name     string
-	Metadata models.Metadata
+	Statements []api.Statement
 }
 
-func (p *CounterParser) GetMetadata() models.Metadata {
-	return p.Metadata
+func (p *CounterParser) GetStatements() []api.Statement {
+	return p.Statements
 }
 
 func (p *CounterParser) GetName() string {
@@ -40,9 +42,13 @@ func (p *CounterParser) Parse(reader io.Reader) (io.Reader, error) {
 		}
 	}
 
-	p.Metadata = models.Metadata{
-		"bytes": fmt.Sprintf("%d", ctr),
-	}
+	p.Statements = []api.Statement{
+        api.Statement{
+            Subject: api.IRI(""),
+            Predicate: api.IRI("ltpcli.encoding.bytes"),
+            Object: api.String(strconv.Itoa(ctr)),
+        },
+    }
 
 	return nil, nil
 }

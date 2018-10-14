@@ -32,5 +32,5 @@ type JsonMetaItem struct {
 type Parser interface {
 	Parse(r io.Reader) (io.Reader, error)
 	GetName() string
-	GetMetadata() Metadata
+	GetStatements() []api.Statement
 }

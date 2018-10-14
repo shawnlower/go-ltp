@@ -8,19 +8,28 @@ package mimetype
 import (
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/common/models"
 	"github.com/shawnlower/go-ltp/parsers"
+	"github.com/shawnlower/go-ltp/api"
 
 	"errors"
+    "fmt"
 	"io"
 	"net/http"
+    "regexp"
+
+	log "github.com/sirupsen/logrus"
 )
+
+var typeMap map[string]api.IRI = map[string]api.IRI{
+    "text/plain": api.IRI("schema:TextDigitalDocument"),
+}
 
 
 type MimetypeParser struct {
-	Metadata models.Metadata
+    Statements []api.Statement
 }
 
-func (p *MimetypeParser) GetMetadata() models.Metadata {
-	return p.Metadata
+func (p *MimetypeParser) GetStatements() []api.Statement {
+	return p.Statements
 }
 
 func (p *MimetypeParser) GetName() string {
@@ -47,9 +56,23 @@ func (p *MimetypeParser) Parse(r io.Reader) (io.Reader, error) {
 		}
 	}
 
-	p.Metadata = models.Metadata{
-		"mime-type": mimetype,
-	}
+    p.Statements = append(p.Statements, api.Statement{
+        Subject: api.IRI(""),
+        Predicate: api.IRI("schema:encodingFormat"),
+        Object: api.String(mimetype),
+    })
+
+    for pat, t := range typeMap {
+        if matched, _ := regexp.MatchString(pat, mimetype); matched == true {
+            log.Debug(fmt.Sprintf("Detected mime-type `%s' matched pattern for type `%s'.",
+                       mimetype, t))
+           p.Statements = append(p.Statements, api.Statement{
+               Subject: api.IRI(""),
+               Predicate: api.IRI("rdf:type"),
+               Object: t,
+           })
+       }
+    }
 
 	return r, nil
 }

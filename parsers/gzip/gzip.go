@@ -1,6 +1,7 @@
 package gzip
 
 import (
+	"github.com/shawnlower/go-ltp/api"
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/common/models"
 	"github.com/shawnlower/go-ltp/parsers"
 
@@ -12,11 +13,11 @@ import (
 )
 
 type GzipParser struct {
-	Metadata models.Metadata
+	Statements []api.Statement
 }
 
-func (p *GzipParser) GetMetadata() models.Metadata {
-	return p.Metadata
+func (p *GzipParser) GetStatements() []api.Statement {
+	return p.Statements
 }
 
 func (p *GzipParser) GetName() string {
@@ -42,12 +43,17 @@ func (p *GzipParser) Parse(r io.Reader) (io.Reader, error) {
 
 	io.Copy(gzipWriter, r)
 
-	// var meta models.MetadataItem
-	// meta := models.MetadataItem{ "name": name }
-	p.Metadata = models.Metadata{
-		"name": name,
-        "comment":  comment,
-        "modified": modtime.String(),
+	// var meta api.StatementsItem
+	// meta := api.StatementsItem{ "name": name }
+	p.Statements = []api.Statement{
+        api.Statement{
+            Subject: api.IRI(""),
+            Predicate: api.IRI("schema:name"),
+            Object: api.String(name)},
+        api.Statement{
+            Subject: api.IRI(""),
+            Predicate: api.IRI("schema:description"),
+            Object: api.String(comment)},
 	}
 	return buf, nil
 }

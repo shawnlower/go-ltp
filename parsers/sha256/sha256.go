@@ -1,11 +1,12 @@
 package sha256
 
 import (
+	"github.com/shawnlower/go-ltp/api"
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/common/models"
 	"github.com/shawnlower/go-ltp/parsers"
 
 	"crypto/sha256"
-	"fmt"
+    "fmt"
 	"io"
 
 	log "github.com/sirupsen/logrus"
@@ -13,11 +14,11 @@ import (
 
 type Sha256Parser struct {
 	Name     string
-	Metadata models.Metadata
+	Statements []api.Statement
 }
 
-func (p *Sha256Parser) GetMetadata() models.Metadata {
-	return p.Metadata
+func (p *Sha256Parser) GetStatements() []api.Statement {
+	return p.Statements
 }
 
 func (p *Sha256Parser) GetName() string {
@@ -28,9 +29,14 @@ func (p *Sha256Parser) Parse(r io.Reader) (io.Reader, error) {
 	h := sha256.New()
 	_, err := io.Copy(h, r)
 
-	p.Metadata = models.Metadata{
-		"hash": fmt.Sprintf("%x", h.Sum(nil)),
-	}
+
+	p.Statements = []api.Statement{
+        api.Statement{
+            Subject: api.IRI(""),
+            Predicate: api.IRI("ltpcli.encoding.hash.sha256"),
+            Object: api.String(fmt.Sprintf("%x", h.Sum(nil))),
+        },
+    }
 
 	return nil, err
 }

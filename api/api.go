@@ -110,7 +110,6 @@ func (i *Item) AddProperty(p Property, v Value) error {
         Label: IRI(""),
     }
 
-    i.statements = append(i.statements, s)
     i.AddStatement(s)
     return nil
 }

@@ -1,6 +1,7 @@
 package aes
 
 import (
+	"github.com/shawnlower/go-ltp/api"
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/common/models"
 	"github.com/shawnlower/go-ltp/parsers"
 
@@ -33,11 +34,11 @@ const (
 
 type AESParser struct {
 	Key      string
-	Metadata models.Metadata
+	Statements []api.Statement
 }
 
-func (p *AESParser) GetMetadata() models.Metadata {
-	return p.Metadata
+func (p *AESParser) GetStatements() []api.Statement {
+	return p.Statements
 }
 
 func (p *AESParser) GetName() string {
@@ -88,17 +89,18 @@ func (p *AESParser) Parse(r io.Reader) (io.Reader, error) {
 
 	buf = gcm.Seal(buf, buf[:gcm.NonceSize()], message.Bytes(), nil)
 
-	log.Debug(fmt.Sprintf("Using nonce: %x", nonce))
-
-	p.Metadata = models.Metadata{
-        "cipher": "aes-256-gcm",
-	}
+    p.Statements = []api.Statement{
+        api.Statement{
+            Subject: api.IRI(""),
+            Predicate: api.IRI("ltpcli.encoding.aes-cipher"),
+            Object: api.String("aes-256-gcm"),
+        },
+    }
 
 	return bytes.NewBuffer(buf), nil
 }
 
 func NewAESParser() models.Parser {
-
 	return &AESParser{}
 }
 
