@@ -73,12 +73,21 @@ message CreateItemResponse {
     Item item = 1;
 }
 
+message GetItemRequest {
+    string IRI = 1;
+}
+
+message GetItemResponse {
+    Item item = 1;
+}
+
 message ServerInfoResponse {
     map<string, string> InfoItems = 1;
 }
 
 service API {
+    rpc CreateItem(CreateItemRequest) returns (CreateItemResponse);
+    rpc GetItem(GetItemRequest) returns (GetItemResponse);
     rpc GetVersion(Empty) returns (VersionResponse);
     rpc GetServerInfo(Empty) returns (ServerInfoResponse);
-    rpc CreateItem(CreateItemRequest) returns (CreateItemResponse);
 }
