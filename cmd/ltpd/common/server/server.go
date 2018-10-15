@@ -13,7 +13,9 @@ import (
 
     "github.com/cayleygraph/cayley"
     "github.com/cayleygraph/cayley/graph"
+    _ "github.com/cayleygraph/cayley/graph/kv/bolt"
     "github.com/cayleygraph/cayley/quad"
+    "github.com/cayleygraph/cayley/voc"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -21,6 +23,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
+	"github.com/spf13/viper"
 
 )
 
@@ -57,11 +60,41 @@ func PprintMeta(md metadata.MD) {
         }
         line += fmt.Sprintf("]")
     }
-    log.Debug("CreateItem context: ", line)
+    log.Debug("context: ", line)
+}
+
+func (s *Server) GetItem(ctx context.Context, req *proto.GetItemRequest) (*proto.GetItemResponse, error) {
+    md, _ := metadata.FromIncomingContext(ctx)
+    PprintMeta(md)
+    log.Debug("GetItemRequest for IRI: ", req.IRI)
+
+    item := &proto.Item{
+        IRI: req.IRI,
+    }
+
+    predicates := cayley.StartPath(store, quad.String(req.IRI)).OutPredicates()
+
+    err := predicates.Iterate(nil).EachValue(nil, func(pred quad.Value){
+        p := cayley.StartPath(store, quad.String(req.IRI)).Out(pred)
+        p.Iterate(nil).EachValue(nil, func(value quad.Value){
+            // nativeValue := quad.NativeOf(value)
+            // log.Debugf("%s: %s = %s", req.IRI, pred, nativeValue)
+            item.Statements = append(item.Statements, &proto.Statement{
+                Subject: item.IRI,
+                Predicate: pred.String(),
+                Object: value.String(),
+            })
+        })
+	})
+
+    resp := &proto.GetItemResponse{
+        Item: item,
+	}
+
+    return resp, err
 }
 
 func (s *Server) CreateItem(ctx context.Context, req *proto.CreateItemRequest) (*proto.CreateItemResponse, error) {
-	// log.Debug("CreateItem called: ", request)
     md, _ := metadata.FromIncomingContext(ctx)
     PprintMeta(md)
 
@@ -76,10 +109,27 @@ func (s *Server) CreateItem(ctx context.Context, req *proto.CreateItemRequest) (
         Statements: req.Statements,
 	}
 
-	log.Debug("api.Item: ", item)
+	log.Debugf("api.Item: [%s]", item)
+
+    for _, itemType := range item.ItemTypes {
+        // q := quad.Make(item.IRI, "rdf:type", itemType, nil)
+        q := quad.Make(
+            quad.String(item.IRI),
+            quad.IRI("rdf:type").Full(),
+            quad.IRI(itemType),
+            quad.String(""))
+        log.Debug("CreateItem: adding type: ", q)
+        store.AddQuad(q)
+    }
 
     for _, statement := range item.GetStatements() {
-        store.AddQuad(quad.Make(statement.Subject, statement.Predicate, statement.Object, item.IRI))
+        q := quad.Make(
+            item.IRI,
+            quad.IRI(statement.Predicate).Full(),
+            quad.String(statement.Object),
+            nil)
+        log.Debug("CreateItem: creating quad: ", q)
+        store.AddQuad(q)
     }
 
 	resp := &proto.CreateItemResponse{
@@ -93,7 +143,45 @@ type Server struct {}
 func InitServer() error {
 
     var err error
-    store, err = cayley.NewMemoryGraph()
+
+    storeName := viper.GetString("store.driver")
+    storeDBPath := viper.GetString("store.dbpath")
+
+    if storeName == "" {
+        storeName = "bolt"
+        storeDBPath = ""
+        log.Warningf("No store defined. Using bolt in a temp dir")
+    }
+
+    if storeName == "memory" {
+        store, err = cayley.NewMemoryGraph()
+        if err != nil {
+            log.Fatal("Failed to create graph: ", err)
+        }
+    } else if storeName == "bolt" {
+        // Use a temporary dir if none specified
+        if storeDBPath == "" {
+            storeDBPath, err = ioutil.TempDir("", "ltp.bolt")
+            if err != nil {
+                log.Fatal("Unable to create temp DB: ", err)
+            }
+            log.Warning(fmt.Sprintf("Using tempdir for DB: `%s'", storeDBPath))
+        }
+        err = graph.InitQuadStore("bolt", storeDBPath, nil)
+        if err != nil {
+            log.Fatal("Failed to create graph: ", err)
+        }
+        store, err = cayley.NewGraph("bolt", storeDBPath, nil)
+        if err != nil {
+            log.Fatal("Failed to open DB: ", err)
+        }
+
+    }
+
+
+
+    voc.RegisterPrefix("schema:", "https://schema.org/")
+    voc.RegisterPrefix("rdf:", "http://www.w3.org/1999/02/22-rdf-syntax-ns#")
 
     if err != nil {
         return fmt.Errorf("Failed to initialize store.")

@@ -20,6 +20,7 @@ import (
 
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/add"
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/info"
+	"github.com/shawnlower/go-ltp/cmd/ltpcli/get"
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/list"
 
 	homedir "github.com/mitchellh/go-homedir"
@@ -79,6 +80,7 @@ func init() {
 	viper.BindPFlag("remote.key", rootCmd.PersistentFlags().Lookup("key"))
 
 	rootCmd.AddCommand(add.NewAddCommand())
+	rootCmd.AddCommand(get.NewGetItemCommand())
 	rootCmd.AddCommand(info.NewInfoCommand())
 	rootCmd.AddCommand(list.NewListCommand())
 }

@@ -93,7 +93,7 @@ func RunServer(cmd *cobra.Command, args []string) error {
     go func(srv *grpc.Server) {
         for {
             log.Info("Server stats: ", srv.GetServiceInfo())
-            time.Sleep(5 * time.Second)
+            time.Sleep(60 * time.Second)
         }
     }(srv)
 
