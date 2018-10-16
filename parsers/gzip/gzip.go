@@ -46,14 +46,14 @@ func (p *GzipParser) Parse(r io.Reader) (io.Reader, error) {
 	// var meta api.StatementsItem
 	// meta := api.StatementsItem{ "name": name }
 	p.Statements = []api.Statement{
-        api.Statement{
-            Subject: api.IRI(""),
-            Predicate: api.IRI("schema:name"),
-            Object: api.String(name)},
-        api.Statement{
-            Subject: api.IRI(""),
-            Predicate: api.IRI("schema:description"),
-            Object: api.String(comment)},
+		api.Statement{
+			Subject:   api.IRI(""),
+			Predicate: api.IRI("schema:name"),
+			Object:    api.String(name)},
+		api.Statement{
+			Subject:   api.IRI(""),
+			Predicate: api.IRI("schema:description"),
+			Object:    api.String(comment)},
 	}
 	return buf, nil
 }

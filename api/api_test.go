@@ -26,16 +26,16 @@ func TestNormalizeUri(t *testing.T) {
 	}
 
 	// Test valid URIs
-	for _, s := range(validUris) {
+	for _, s := range validUris {
 		u, err := NormalizeUri(s)
 		if err != nil {
 			t.Fatalf("Failed with valid URI: `%s'. (got url=`%s', err=`%s'.\n",
-                s, u, err)
+				s, u, err)
 		}
 	}
 
 	// Test invalid URIs
-	for _, s := range(invalidUris) {
+	for _, s := range invalidUris {
 		u, err := NormalizeUri(s)
 		if err == nil {
 			t.Fatalf("Failed to fail on invalid URI: `%s' got `%s'.", s, u)
@@ -43,23 +43,23 @@ func TestNormalizeUri(t *testing.T) {
 	}
 
 	// Test valid CURIEs
-	for _, s := range(cURIEs) {
+	for _, s := range cURIEs {
 		u, err := NormalizeUri(s)
 		if err != nil {
 			t.Fatalf("Failed on valid CURIE: `%s' (got url=`%s', err=`%s'.\n",
-                s, u, err)
+				s, u, err)
 		}
 	}
 }
 
 func TestNewItemRequest(t *testing.T) {
-    _, err := NewItemRequest("schema:Book")
-    if err != nil {
-        t.Fatal(err)
-    }
+	_, err := NewItemRequest("schema:Book")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-    _, err = NewItemRequest("")
-    if err == nil {
-        t.Fatal("Empty NewItemRequest should fail.")
-    }
+	_, err = NewItemRequest("")
+	if err == nil {
+		t.Fatal("Empty NewItemRequest should fail.")
+	}
 }

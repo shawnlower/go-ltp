@@ -17,14 +17,13 @@
 package api
 
 import (
-    // "encoding/json"
-    "errors"
-    "fmt"
-    "net/url"
-    "regexp"
+	// "encoding/json"
+	"errors"
+	"fmt"
+	"net/url"
+	"regexp"
 
 	"github.com/shawnlower/go-ltp/api/proto"
-
 )
 
 const (
@@ -53,7 +52,6 @@ const (
 // req.Item
 // g.AddQuad(req.
 
-
 // An Item is the basic type used for describing resources.
 // It is composed of
 // - The URL that can be used to retrieve the resource
@@ -68,9 +66,9 @@ const (
 //   i.AddProperty(IRI("schema:name"), String("Transformers"))
 
 type Item struct {
-    IRI IRI
-    ItemTypes []IRI
-    statements []Statement
+	IRI        IRI
+	ItemTypes  []IRI
+	statements []Statement
 }
 
 // Returns a new item object of the type specified.
@@ -79,9 +77,9 @@ type Item struct {
 // is used. Does not assign a URL, or commit to the store.
 func NewItem(itemType IRI) (Item, error) {
 
-    itemTypes := []IRI{itemType}
+	itemTypes := []IRI{itemType}
 
-    item := Item{
+	item := Item{
 		IRI:       "",
 		ItemTypes: itemTypes,
 	}
@@ -90,94 +88,94 @@ func NewItem(itemType IRI) (Item, error) {
 }
 
 func (i Item) GetStatements() ([]Statement, error) {
-    return i.statements, nil
+	return i.statements, nil
 }
 
 // AddStatement: Append a statement (s,p,o,l) to an item
 func (i *Item) AddStatement(s Statement) error {
-    i.statements = append(i.statements, s)
-    return nil
+	i.statements = append(i.statements, s)
+	return nil
 }
 
 // AddProperty: Append a property=value pair to an item
 // Example:
 //   i.AddProperty(IRI("schema:name"), String("Transformers"))
 func (i *Item) AddProperty(p Property, v Value) error {
-    s := Statement{
-        Subject: Value(i.IRI),
-        Predicate: Value(p.IRI),
-        Object: Value(v),
-        Label: IRI(""),
-    }
+	s := Statement{
+		Subject:   Value(i.IRI),
+		Predicate: Value(p.IRI),
+		Object:    Value(v),
+		Label:     IRI(""),
+	}
 
-    i.AddStatement(s)
-    return nil
+	i.AddStatement(s)
+	return nil
 }
 
 // Add a type to an Item
 // If a single empty-string type exists, it will be replaced with the
 // type specified
 func (i Item) AddType(iri IRI) error {
-    if len(i.ItemTypes) == 1 && i.ItemTypes[0] == "" {
-        i.ItemTypes[0] = iri
-    }
-    i.ItemTypes = append(i.ItemTypes, iri)
-    return nil
+	if len(i.ItemTypes) == 1 && i.ItemTypes[0] == "" {
+		i.ItemTypes[0] = iri
+	}
+	i.ItemTypes = append(i.ItemTypes, iri)
+	return nil
 }
 
 // Add multiple types to an Item
 func (i Item) AddTypes(iriList []IRI) error {
-    if len(iriList) == 0 {
-        return nil
-    }
-    for _, iri := range iriList {
-        err := i.AddType(iri)
-        if err != nil {
-            return err
-        }
-    }
-    return nil
+	if len(iriList) == 0 {
+		return nil
+	}
+	for _, iri := range iriList {
+		err := i.AddType(iri)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type Statement struct {
-    Subject Value
-    Predicate Value
-    Object Value
-    Label Value
+	Subject   Value
+	Predicate Value
+	Object    Value
+	Label     Value
 }
 
 func GetTypeFromStatements(statements []Statement) ([]IRI, error) {
-    var itemTypes []IRI
+	var itemTypes []IRI
 
-    for _, statement := range statements {
-        // BUG: Need to expand IRI
-        if statement.Predicate == IRI("rdf:type") {
-            itemTypes = append(itemTypes, IRI(statement.Object.String()))
-        }
-    }
-    return itemTypes, nil
+	for _, statement := range statements {
+		// BUG: Need to expand IRI
+		if statement.Predicate == IRI("rdf:type") {
+			itemTypes = append(itemTypes, IRI(statement.Object.String()))
+		}
+	}
+	return itemTypes, nil
 
 }
 
 type Property struct {
-    IRI IRI
-    Name string
-    Comment string
+	IRI     IRI
+	Name    string
+	Comment string
 }
 
 func NewProperty(iri IRI) *Property {
-    return &Property{
-        IRI: iri,
-    }
+	return &Property{
+		IRI: iri,
+	}
 
 }
 
 func (p Property) String() string {
-    return string(p.IRI)
+	return string(p.IRI)
 }
 
 func (p Property) Native() interface{} {
-    return p
+	return p
 }
 
 // Interface for IRIs, strings, etc
@@ -185,8 +183,8 @@ func (p Property) Native() interface{} {
 // See also:
 // https://github.com/cayleygraph/cayley/blob/master/quad/value.go
 type Value interface {
-    String() string
-    Native() interface{} // Return closest go type
+	String() string
+	Native() interface{} // Return closest go type
 }
 
 // IRI: An Internationalized Resource Identifier, similar to a URI
@@ -194,21 +192,21 @@ type Value interface {
 type IRI string
 
 func (s IRI) String() string {
-    return string(s)
+	return string(s)
 }
 
 func (s IRI) Native() interface{} {
-    return s
+	return s
 }
 
 type String string
 
 func (s String) String() string {
-    return string(s)
+	return string(s)
 }
 
 func (s String) Native() interface{} {
-    return s
+	return s
 }
 
 // Submit a resource to a remote store
@@ -227,35 +225,35 @@ func (s String) Native() interface{} {
 
 func (i Item) ToRequest() (*proto.CreateItemRequest, error) {
 
-    if len(i.ItemTypes) == 0 {
-        return nil, errors.New("Item type is empty")
-    }
+	if len(i.ItemTypes) == 0 {
+		return nil, errors.New("Item type is empty")
+	}
 
-    var itemTypes []string
-    for _, itemType := range i.ItemTypes {
-        iri, err := NormalizeIri(itemType)
-        if err != nil {
-            return nil, errors.New(
-                fmt.Sprintf("Unable to validate type of item: `%s'. Expected a url, e.g. http://schema.org/Book. Error: %v", i, err))
-        }
-        itemTypes = append(itemTypes, iri.String())
-    }
+	var itemTypes []string
+	for _, itemType := range i.ItemTypes {
+		iri, err := NormalizeIri(itemType)
+		if err != nil {
+			return nil, errors.New(
+				fmt.Sprintf("Unable to validate type of item: `%s'. Expected a url, e.g. http://schema.org/Book. Error: %v", i, err))
+		}
+		itemTypes = append(itemTypes, iri.String())
+	}
 
-    req := &proto.CreateItemRequest{
-        ItemTypes: itemTypes,
-    }
+	req := &proto.CreateItemRequest{
+		ItemTypes: itemTypes,
+	}
 
-    statements, _ := i.GetStatements()
-    for _, statement := range statements {
-        statementPb := &proto.Statement{
-            Subject: statement.Subject.String(),
-            Predicate: statement.Predicate.String(),
-            Object: statement.Object.String(),
-            Label: statement.Label.String(),
-        }
-        req.Statements = append(req.Statements, statementPb)
-    }
-    return req, nil
+	statements, _ := i.GetStatements()
+	for _, statement := range statements {
+		statementPb := &proto.Statement{
+			Subject:   statement.Subject.String(),
+			Predicate: statement.Predicate.String(),
+			Object:    statement.Object.String(),
+			Label:     statement.Label.String(),
+		}
+		req.Statements = append(req.Statements, statementPb)
+	}
+	return req, nil
 }
 
 // Ensure that a URL is valid, returning it as a url.URL object
@@ -268,56 +266,56 @@ func (i Item) ToRequest() (*proto.CreateItemRequest, error) {
 //    See: https://lov.linkeddata.es/dataset/lov/
 func NormalizeIri(iri IRI) (IRI, error) {
 
-    var re *regexp.Regexp
-    var err error
+	var re *regexp.Regexp
+	var err error
 
-    // Extract the substring of a bracketed <url>, if necessary
-    // when the URL matches http/https prefix
-    if re, err = regexp.Compile("^<?(https?://.*)>?$"); err != nil {
+	// Extract the substring of a bracketed <url>, if necessary
+	// when the URL matches http/https prefix
+	if re, err = regexp.Compile("^<?(https?://.*)>?$"); err != nil {
 		return "", err
 	}
-    if m := re.FindStringSubmatch(iri.String()); len(m) > 1 {
-        // We have a URI
-        return iri, nil
-    }
+	if m := re.FindStringSubmatch(iri.String()); len(m) > 1 {
+		// We have a URI
+		return iri, nil
+	}
 
-    // Try for a CURIE
-    uri, err := ExpandCurie(iri.String())
-    if err != nil {
-        return "", err
-    } else {
-        return IRI(uri.String()), nil
-    }
+	// Try for a CURIE
+	uri, err := ExpandCurie(iri.String())
+	if err != nil {
+		return "", err
+	} else {
+		return IRI(uri.String()), nil
+	}
 }
 
 // Expandeds a CURIE (e.g. <schema:Person> or foaf:name) into a
 // qualified name, e.g. https://schema.org/Person
 func ExpandCurie(curieString string) (*url.URL, error) {
 
-    // Regex splits input into 3 groups:
-    // 0: Left-most match
-    // 1: Prefix e.g. `schema'
-    // 2: Suffix e.g. `Person'
-    re, err := regexp.Compile("^<?([^. <>]+):([^>]+)>?$")
+	// Regex splits input into 3 groups:
+	// 0: Left-most match
+	// 1: Prefix e.g. `schema'
+	// 2: Suffix e.g. `Person'
+	re, err := regexp.Compile("^<?([^. <>]+):([^>]+)>?$")
 	if err != nil {
 		return nil, err
 	}
-    if m := re.FindStringSubmatch(curieString); len(m) == 3 {
-        // We have a CURIE
-        prefix := m[1]
-        suffix := m[2]
-        uriPrefixes := map[string]string{
-            "schema": "https://schema.org/",
-        }
-        ns := uriPrefixes[prefix]
-        if prefix != "" {
-            return url.Parse(fmt.Sprintf("%s%s", ns, suffix))
-        } else {
-            return nil, &ErrInvalidUri{Uri: curieString}
-        }
-    }
+	if m := re.FindStringSubmatch(curieString); len(m) == 3 {
+		// We have a CURIE
+		prefix := m[1]
+		suffix := m[2]
+		uriPrefixes := map[string]string{
+			"schema": "https://schema.org/",
+		}
+		ns := uriPrefixes[prefix]
+		if prefix != "" {
+			return url.Parse(fmt.Sprintf("%s%s", ns, suffix))
+		} else {
+			return nil, &ErrInvalidUri{Uri: curieString}
+		}
+	}
 
-    return nil, &ErrInvalidUri{Uri: curieString}
+	return nil, &ErrInvalidUri{Uri: curieString}
 }
 
 // Returns the scope as a URI.
@@ -333,4 +331,3 @@ func ExpandCurie(curieString string) (*url.URL, error) {
 // func (s Scope) GetScopeJSON() (json *json.Decoder, err error) {
 // 	return nil, ErrUnimplemented
 // }
-

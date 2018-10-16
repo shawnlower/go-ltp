@@ -33,7 +33,7 @@ const (
 )
 
 type AESParser struct {
-	Key      string
+	Key        string
 	Statements []api.Statement
 }
 
@@ -89,13 +89,13 @@ func (p *AESParser) Parse(r io.Reader) (io.Reader, error) {
 
 	buf = gcm.Seal(buf, buf[:gcm.NonceSize()], message.Bytes(), nil)
 
-    p.Statements = []api.Statement{
-        api.Statement{
-            Subject: api.IRI(""),
-            Predicate: api.IRI("ltpcli.encoding.aes-cipher"),
-            Object: api.String("aes-256-gcm"),
-        },
-    }
+	p.Statements = []api.Statement{
+		api.Statement{
+			Subject:   api.IRI(""),
+			Predicate: api.IRI("ltpcli.encoding.aes-cipher"),
+			Object:    api.String("aes-256-gcm"),
+		},
+	}
 
 	return bytes.NewBuffer(buf), nil
 }

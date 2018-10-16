@@ -6,7 +6,7 @@ import (
 	"github.com/shawnlower/go-ltp/parsers"
 
 	"crypto/sha512"
-    "fmt"
+	"fmt"
 	"io"
 
 	log "github.com/sirupsen/logrus"
@@ -17,7 +17,7 @@ func GetStatementsJson() string {
 }
 
 type Sha512Parser struct {
-	Name     string
+	Name       string
 	Statements []api.Statement
 }
 
@@ -34,12 +34,12 @@ func (p *Sha512Parser) Parse(r io.Reader) (io.Reader, error) {
 	_, err := io.Copy(h, r)
 
 	p.Statements = []api.Statement{
-        api.Statement{
-            Subject: api.IRI(""),
-            Predicate: api.IRI("ltpcli.encoding.hash.sha512"),
-            Object: api.String(fmt.Sprintf("%x", h.Sum(nil))),
-        },
-    }
+		api.Statement{
+			Subject:   api.IRI(""),
+			Predicate: api.IRI("ltpcli.encoding.hash.sha512"),
+			Object:    api.String(fmt.Sprintf("%x", h.Sum(nil))),
+		},
+	}
 
 	return nil, err
 }

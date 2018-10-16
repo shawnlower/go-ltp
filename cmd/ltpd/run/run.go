@@ -16,19 +16,19 @@ package run
 
 import (
 	"google.golang.org/grpc"
-    "net/url"
-    "os"
-    "os/signal"
-    "strings"
-    "syscall"
-    "time"
+	"net/url"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
 
 	"github.com/shawnlower/go-ltp/api"
 	"github.com/shawnlower/go-ltp/cmd/ltpd/common/server"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -36,79 +36,79 @@ var (
 )
 
 type ServerConfig struct {
-	ServerUrl string;
-    AuthMethod string;
-    ServerCert string;
-    ServerKey string;
-    CACert string;
+	ServerUrl  string
+	AuthMethod string
+	ServerCert string
+	ServerKey  string
+	CACert     string
 }
 
 func RunServer(cmd *cobra.Command, args []string) error {
-    config := &ServerConfig{
-        ServerUrl : strings.ToLower(viper.GetString("server.listen-addr")),
-        ServerCert : viper.GetString("server.cert"),
-        ServerKey : viper.GetString("server.key"),
-        CACert : viper.GetString("server.ca-cert"),
-        AuthMethod : strings.ToLower(viper.GetString("remote.auth")),
-    }
+	config := &ServerConfig{
+		ServerUrl:  strings.ToLower(viper.GetString("server.listen-addr")),
+		ServerCert: viper.GetString("server.cert"),
+		ServerKey:  viper.GetString("server.key"),
+		CACert:     viper.GetString("server.ca-cert"),
+		AuthMethod: strings.ToLower(viper.GetString("remote.auth")),
+	}
 
 	u, err := url.Parse(config.ServerUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-    var (
-        host string
-        port string
-    )
+	var (
+		host string
+		port string
+	)
 
-    host = u.Hostname()
+	host = u.Hostname()
 
 	if u.Port() == "" {
-        port = "17900"
+		port = "17900"
 	} else {
-        port = u.Port()
+		port = u.Port()
 	}
-    log.Debug(u, config)
+	log.Debug(u, config)
 
-    var done chan error
-    var srv *grpc.Server
-    if u.Scheme == "grpc" {
-        if config.AuthMethod == "mutual-tls" {
-            srv, done = server.NewMutualTLSGrpcServer(host, port,
-                config.ServerCert, config.ServerKey, config.CACert)
-        } else if config.AuthMethod == "insecure" {
-            srv, done = server.NewInsecureGrpcServer(host, port)
-        } else {
-            return &api.ErrInvalidAuthMethod{Method: config.AuthMethod}
-        }
-    } else {
-        return &api.ErrInvalidScheme{Scheme: u.Scheme}
-    }
+	var done chan error
+	var srv *grpc.Server
+	if u.Scheme == "grpc" {
+		if config.AuthMethod == "mutual-tls" {
+			srv, done = server.NewMutualTLSGrpcServer(host, port,
+				config.ServerCert, config.ServerKey, config.CACert)
+		} else if config.AuthMethod == "insecure" {
+			srv, done = server.NewInsecureGrpcServer(host, port)
+		} else {
+			return &api.ErrInvalidAuthMethod{Method: config.AuthMethod}
+		}
+	} else {
+		return &api.ErrInvalidScheme{Scheme: u.Scheme}
+	}
 
-    sigchan := make(chan os.Signal, 1)
-    signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
-    // Stats monitor
-    go func(srv *grpc.Server) {
-        for {
-            log.Info("Server stats: ", srv.GetServiceInfo())
-            time.Sleep(60 * time.Second)
-        }
-    }(srv)
+	// Stats monitor
+	go func(srv *grpc.Server) {
+		for {
+			log.Info("Server stats: ", srv.GetServiceInfo())
+			time.Sleep(60 * time.Second)
+		}
+	}(srv)
 
-    doExit := false
-    for doExit != true {
-        select {
-        case err := <-done:
-            log.Debug("Server finished. Return: ", err)
-            doExit = true
+	doExit := false
+	for doExit != true {
+		select {
+		case err := <-done:
+			log.Debug("Server finished. Return: ", err)
+			doExit = true
 
-        case err := <-sigchan:
-            log.Debug("Server exiting via signal. Return: ", err)
-            srv.GracefulStop()
-        }
-    }
-    return err
+		case err := <-sigchan:
+			log.Debug("Server exiting via signal. Return: ", err)
+			srv.GracefulStop()
+		}
+	}
+	return err
 
 }

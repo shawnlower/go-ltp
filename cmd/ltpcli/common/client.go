@@ -18,9 +18,9 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-    "io/ioutil"
+	"io/ioutil"
 	"net/url"
-    "strings"
+	"strings"
 	"time"
 
 	"github.com/shawnlower/go-ltp/api"
@@ -34,38 +34,38 @@ import (
 )
 
 type ClientConfig struct {
-	ServerUrl string;
-    AuthMethod string;
-    ClientCert string;
-    ClientKey string;
-    CACert string;
+	ServerUrl  string
+	AuthMethod string
+	ClientCert string
+	ClientKey  string
+	CACert     string
 }
 
 func GetClient() (proto.APIClient, context.Context, error) {
-    config := &ClientConfig{
-        ServerUrl : strings.ToLower(viper.GetString("remote.url")),
-        ClientCert : viper.GetString("remote.cert"),
-        ClientKey : viper.GetString("remote.key"),
-        CACert : viper.GetString("remote.ca-cert"),
-        AuthMethod : strings.ToLower(viper.GetString("remote.auth")),
-    }
+	config := &ClientConfig{
+		ServerUrl:  strings.ToLower(viper.GetString("remote.url")),
+		ClientCert: viper.GetString("remote.cert"),
+		ClientKey:  viper.GetString("remote.key"),
+		CACert:     viper.GetString("remote.ca-cert"),
+		AuthMethod: strings.ToLower(viper.GetString("remote.auth")),
+	}
 
 	u, err := url.Parse(config.ServerUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-    if u.Scheme == "grpc" {
-        if config.AuthMethod == "mutual-tls" {
-            return getMutualTLSGrpcClient(config)
-        } else if config.AuthMethod == "insecure" {
-            return getInsecureGrpcClient(config)
-        } else {
-            return nil, nil, &api.ErrInvalidAuthMethod{Method: config.AuthMethod}
-        }
-    } else {
-        return nil, nil, &api.ErrInvalidScheme{Scheme: u.Scheme}
-    }
+	if u.Scheme == "grpc" {
+		if config.AuthMethod == "mutual-tls" {
+			return getMutualTLSGrpcClient(config)
+		} else if config.AuthMethod == "insecure" {
+			return getInsecureGrpcClient(config)
+		} else {
+			return nil, nil, &api.ErrInvalidAuthMethod{Method: config.AuthMethod}
+		}
+	} else {
+		return nil, nil, &api.ErrInvalidScheme{Scheme: u.Scheme}
+	}
 }
 
 func getInsecureGrpcClient(cfg *ClientConfig) (proto.APIClient, context.Context, error) {
@@ -88,14 +88,14 @@ func getInsecureGrpcClient(cfg *ClientConfig) (proto.APIClient, context.Context,
 		port = u.Port()
 	}
 
-    address := fmt.Sprintf("%s:%s", host, port)
+	address := fmt.Sprintf("%s:%s", host, port)
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
 
-    c := proto.NewAPIClient(conn)
-    ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
+	c := proto.NewAPIClient(conn)
+	ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
 
 	return c, ctx, nil
 }
@@ -120,36 +120,36 @@ func getMutualTLSGrpcClient(cfg *ClientConfig) (proto.APIClient, context.Context
 		port = u.Port()
 	}
 
-    certificate, err := tls.LoadX509KeyPair(cfg.ClientCert, cfg.ClientKey)
-    if err != nil {
+	certificate, err := tls.LoadX509KeyPair(cfg.ClientCert, cfg.ClientKey)
+	if err != nil {
 		log.Fatalf("Unable to load keypair: %s", err)
-    }
+	}
 
-    certPool := x509.NewCertPool()
-    ca, err := ioutil.ReadFile(cfg.CACert)
-    if err != nil {
+	certPool := x509.NewCertPool()
+	ca, err := ioutil.ReadFile(cfg.CACert)
+	if err != nil {
 		log.Fatalf("Unable to load CA cert: %s", err)
-    }
+	}
 
-    if ok := certPool.AppendCertsFromPEM(ca); !ok {
+	if ok := certPool.AppendCertsFromPEM(ca); !ok {
 		log.Fatalf("Unable to add CA cert: %s", err)
-    }
+	}
 
-    creds := credentials.NewTLS(&tls.Config{
-        ServerName: host,
-        Certificates: []tls.Certificate{certificate},
-        RootCAs: certPool,
-    })
+	creds := credentials.NewTLS(&tls.Config{
+		ServerName:   host,
+		Certificates: []tls.Certificate{certificate},
+		RootCAs:      certPool,
+	})
 
-    address := fmt.Sprintf("%s:%s", host, port)
+	address := fmt.Sprintf("%s:%s", host, port)
 	conn, err := grpc.Dial(address, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
 
-    c := proto.NewAPIClient(conn)
+	c := proto.NewAPIClient(conn)
 
-    ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
 
 	return c, ctx, nil
 

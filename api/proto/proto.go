@@ -1,18 +1,17 @@
 package proto
 
-import (
-)
+import ()
 
 const (
 	DEFAULT_ITEM_TYPE = "http://schema.org/Thing"
 )
 
 // func NewCreateItemRequest(itemTypeStr string) (*CreateItemRequest, error) {
-// 
+//
 //     if itemTypeStr == "" {
 //         return nil, errors.New("NewItemRequest called with empty type string.")
 //     }
-// 
+//
 //     var itemTypes []*ItemType
 //     if itemTypeStr != "" {
 //         uri, err := NormalizeUri(itemTypeStr)
@@ -22,11 +21,10 @@ const (
 //         }
 //         itemTypes = append(itemTypes, &ItemType{Uri: uri.String()})
 //     }
-// 
+//
 //     req := &CreateItemRequest{
 //         ItemTypes: itemTypes,
 //     }
-// 
+//
 //     return req, nil
 // }
-

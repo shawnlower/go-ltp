@@ -28,8 +28,8 @@ func NewGetItemCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "get",
 		Short: "Get an item from the remote store",
-		Long: `Retrieves an item and any statements related to the item`,
-		Run: getItemCommand,
+		Long:  `Retrieves an item and any statements related to the item`,
+		Run:   getItemCommand,
 	}
 
 	return cmd
@@ -38,26 +38,25 @@ func NewGetItemCommand() *cobra.Command {
 func getItemCommand(cmd *cobra.Command, args []string) {
 	fmt.Println("get called with ", args)
 
-    if len(args) < 1 {
-        log.Fatalf("Required: item IRI")
-    }
+	if len(args) < 1 {
+		log.Fatalf("Required: item IRI")
+	}
 
-    IRI := args[0]
+	IRI := args[0]
 
 	c, ctx, err := common.GetClient()
-    getResp, err := c.GetItem(ctx, &proto.GetItemRequest{IRI: IRI})
+	getResp, err := c.GetItem(ctx, &proto.GetItemRequest{IRI: IRI})
 	if err != nil {
 		log.Fatalf("Error in gRPC: %v", err)
 	}
 	log.Printf("Received via gRPC: %s", getResp.Item)
 
-    if getResp.Item == nil || getResp.Item.Statements == nil {
-        log.Fatalf("No item received.")
-    }
+	if getResp.Item == nil || getResp.Item.Statements == nil {
+		log.Fatalf("No item received.")
+	}
 
-    log.Printf("Received via gRPC: ")
-    for i, statement := range getResp.Item.Statements {
-        log.Printf("%d: [%+v]", int(i), statement)
-    }
+	log.Printf("Received via gRPC: ")
+	for i, statement := range getResp.Item.Statements {
+		log.Printf("%d: [%+v]", int(i), statement)
+	}
 }
-

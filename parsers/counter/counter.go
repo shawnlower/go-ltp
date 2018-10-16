@@ -7,13 +7,13 @@ import (
 
 	"fmt"
 	"io"
-    "strconv"
+	"strconv"
 
 	log "github.com/sirupsen/logrus"
 )
 
 type CounterParser struct {
-	Name     string
+	Name       string
 	Statements []api.Statement
 }
 
@@ -43,12 +43,12 @@ func (p *CounterParser) Parse(reader io.Reader) (io.Reader, error) {
 	}
 
 	p.Statements = []api.Statement{
-        api.Statement{
-            Subject: api.IRI(""),
-            Predicate: api.IRI("ltpcli.encoding.bytes"),
-            Object: api.String(strconv.Itoa(ctr)),
-        },
-    }
+		api.Statement{
+			Subject:   api.IRI(""),
+			Predicate: api.IRI("ltpcli.encoding.bytes"),
+			Object:    api.String(strconv.Itoa(ctr)),
+		},
+	}
 
 	return nil, nil
 }

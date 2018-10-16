@@ -6,27 +6,26 @@
 package mimetype
 
 import (
+	"github.com/shawnlower/go-ltp/api"
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/common/models"
 	"github.com/shawnlower/go-ltp/parsers"
-	"github.com/shawnlower/go-ltp/api"
 
 	"errors"
-    "fmt"
+	"fmt"
 	"io"
 	"net/http"
-    "regexp"
+	"regexp"
 
 	log "github.com/sirupsen/logrus"
 )
 
 var typeMap map[string]api.IRI = map[string]api.IRI{
-    "^text/plain": api.IRI("schema:TextDigitalDocument"),
-    "^image/.*": api.IRI("schema:Photograph"),
+	"^text/plain": api.IRI("schema:TextDigitalDocument"),
+	"^image/.*":   api.IRI("schema:Photograph"),
 }
 
-
 type MimetypeParser struct {
-    Statements []api.Statement
+	Statements []api.Statement
 }
 
 func (p *MimetypeParser) GetStatements() []api.Statement {
@@ -57,23 +56,23 @@ func (p *MimetypeParser) Parse(r io.Reader) (io.Reader, error) {
 		}
 	}
 
-    p.Statements = append(p.Statements, api.Statement{
-        Subject: api.IRI(""),
-        Predicate: api.IRI("schema:encodingFormat"),
-        Object: api.String(mimetype),
-    })
+	p.Statements = append(p.Statements, api.Statement{
+		Subject:   api.IRI(""),
+		Predicate: api.IRI("schema:encodingFormat"),
+		Object:    api.String(mimetype),
+	})
 
-    for pat, t := range typeMap {
-        if matched, _ := regexp.MatchString(pat, mimetype); matched == true {
-            log.Debug(fmt.Sprintf("Detected mime-type `%s' matched pattern for type `%s'.",
-                       mimetype, t))
-           p.Statements = append(p.Statements, api.Statement{
-               Subject: api.IRI(""),
-               Predicate: api.IRI("rdf:type"),
-               Object: t,
-           })
-       }
-    }
+	for pat, t := range typeMap {
+		if matched, _ := regexp.MatchString(pat, mimetype); matched == true {
+			log.Debug(fmt.Sprintf("Detected mime-type `%s' matched pattern for type `%s'.",
+				mimetype, t))
+			p.Statements = append(p.Statements, api.Statement{
+				Subject:   api.IRI(""),
+				Predicate: api.IRI("rdf:type"),
+				Object:    t,
+			})
+		}
+	}
 
 	return r, nil
 }

@@ -1,17 +1,17 @@
 package models
 
 import (
-	"io"
 	"github.com/shawnlower/go-ltp/api"
+	"io"
 )
 
 type Input struct {
-	Name     string
-	Reader   io.Reader
-	Metadata Metadata
-    Item     *api.Item
-    AsyncParsers  []Parser
-    SerialParsers  []Parser
+	Name          string
+	Reader        io.Reader
+	Metadata      Metadata
+	Item          *api.Item
+	AsyncParsers  []Parser
+	SerialParsers []Parser
 }
 
 type Metadata map[string]string
@@ -24,8 +24,8 @@ type JsonMetadata struct {
 }
 
 type JsonMetaItem struct {
-	Parser string         `json:"parser"`
-	Type   string         `json:"type"`
+	Parser string   `json:"parser"`
+	Type   string   `json:"type"`
 	Items  Metadata `json:"items"`
 }
 
