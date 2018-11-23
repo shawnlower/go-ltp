@@ -32,7 +32,7 @@ var (
 
 func (s *Server) GetVersion(ctx context.Context, in *proto.Empty) (*proto.VersionResponse, error) {
 	log.Debug(fmt.Sprintf("GetVersion called. ctx: %#v\n", ctx))
-	return &proto.VersionResponse{VersionString: "LTP Server v0.0.0"}, nil
+	return &proto.VersionResponse{VersionString: "LTP Server version 0.0.0"}, nil
 }
 
 func (s *Server) GetServerInfo(ctx context.Context, in *proto.Empty) (*proto.ServerInfoResponse, error) {
