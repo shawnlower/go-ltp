@@ -22,6 +22,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 )
@@ -60,6 +61,29 @@ func PprintMeta(md metadata.MD) {
 		line += fmt.Sprintf("]")
 	}
 	log.Debug("context: ", line)
+}
+
+func (s *Server) GetItemType(ctx context.Context, req *proto.GetItemTypeRequest) (*proto.GetItemTypeResponse, *Error) {
+
+	iri := req.IRI
+
+	testIRI := "http://ltp.shawnlower.net/_test"
+	if iri == testIRI {
+		t := &proto.ItemType{
+			IRI: testIRI,
+			Label: "This is a fake type",
+			Parents: nil,
+			Children: nil,
+		}
+
+		resp := &proto.GetItemTypeResponse{ItemType: t}
+
+		return resp, &Error{codes.OK, "ltpd: OK"}
+	} else if iri == "http://ltp.shawnlower.net/_missing" {
+		return nil, &Error{codes.NotFound, "Item not found"}
+	}
+
+	return nil, &Error{codes.Unimplemented, "Unimplemented."}
 }
 
 func (s *Server) GetItem(ctx context.Context, req *proto.GetItemRequest) (*proto.GetItemResponse, error) {
