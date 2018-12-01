@@ -36,16 +36,16 @@ message VersionResponse {
     string VersionString = 1;
 }
 
-message ItemType {
+message Type {
     string IRI = 1;
     string Label = 2;
-    repeated ItemType Parents = 3;
-    repeated ItemType Children = 4;
+    repeated Type Parents = 3;
+    repeated Type Children = 4;
 }
 
 message Item {
     string IRI = 1;
-    repeated string ItemTypes = 2;
+    repeated string Types = 2;
     repeated Statement Statements = 3;
 }
 
@@ -72,7 +72,7 @@ message Scope {
 }
 
 message CreateItemRequest {
-    repeated string ItemTypes = 1;
+    repeated string Types = 1;
     repeated Statement Statements = 2;
 }
 
@@ -88,12 +88,12 @@ message GetItemResponse {
     Item item = 1;
 }
 
-message GetItemTypeRequest {
+message GetTypeRequest {
     string IRI = 1;
 }
 
-message GetItemTypeResponse {
-    ItemType ItemType = 1;
+message GetTypeResponse {
+    Type Type = 1;
 }
 
 message ServerInfoResponse {

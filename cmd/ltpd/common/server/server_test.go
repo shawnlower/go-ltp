@@ -8,17 +8,26 @@ import (
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
+// Test that we get a valid version response
 func TestGetVersion(t *testing.T) {
 
 	req := &pb.Empty{}
 
 	s := Server{}
 	resp, err := s.GetVersion(context.Background(), req)
-	if err != nil {
-		t.Fatalf("GetVersion returned error: %s", err)
+
+	st, ok := status.FromError(err)
+	if !ok {
+		st = status.New(codes.Unknown, err.Error())
 	}
+
+	if st.Code() != codes.OK {
+		t.Fatalf("GetType returned error: %v", st)
+	}
+
 	expectedRegexp := "LTP Server version.*"
 	m, _ := regexp.MatchString(expectedRegexp, resp.VersionString)
 	if !m {
@@ -26,39 +35,73 @@ func TestGetVersion(t *testing.T) {
 	}
 }
 
-func TestGetItemType(t *testing.T) {
+// Use a reserved IRI (http://ltp.shawnlower.net/_test) to ensure we get
+// a valid type back (DB not req'd)
+func TestGetType(t *testing.T) {
 
 	iri := "http://ltp.shawnlower.net/_test"
 
-	req := &pb.GetItemTypeRequest{
+	req := &pb.GetTypeRequest{
 		IRI: iri,
 	}
 
 	s := Server{}
 
-	resp, err := s.GetItemType(context.Background(), req)
-	if err.Code != codes.OK {
-		t.Fatalf("GetItemType returned error: %s", err)
+	resp, err := s.GetType(context.Background(), req)
+
+	st, ok := status.FromError(err)
+	if !ok {
+		st = status.New(codes.Unknown, err.Error())
 	}
 
-	if resp.ItemType.IRI != iri {
-		t.Fatalf("Unexpected return item type: %s (expected %s)", resp.ItemType.IRI, iri)
+	if st.Code() != codes.OK {
+		t.Fatalf("GetType returned error: %v", st)
+	}
+
+	if resp.Type.IRI != iri {
+		t.Fatalf("Unexpected return item type: %s (expected %s)", resp.Type.IRI, iri)
 	}
 }
 
-func TestGetItemTypeMissing(t *testing.T) {
+// Use a reserved IRI (http://ltp.shawnlower.net/_missing) to ensure we get
+// a valid error on missing (DB not req'd)
+func TestGetTypeMissing(t *testing.T) {
 
 	iri := "http://ltp.shawnlower.net/_missing"
 
-	req := &pb.GetItemTypeRequest{
+	req := &pb.GetTypeRequest{
 		IRI: iri,
 	}
 
 	s := Server{}
 
-	_, err := s.GetItemType(context.Background(), req)
+	_, err := s.GetType(context.Background(), req)
 
-	if err.Code != codes.NotFound {
-		t.Fatalf("Expected GetItemType to return not found, got: %s", err)
+	st, ok := status.FromError(err)
+	if !ok {
+		st = status.New(codes.Unknown, err.Error())
 	}
+
+	if st.Code() != codes.NotFound {
+		t.Fatalf("Expected GetType to return not found, got: %v", st)
+	}
+}
+
+func TestGetServerInfo(t *testing.T) {
+
+	s := &Server{}
+
+	InitServer()
+
+	_, err := s.GetServerInfo(context.Background(), &pb.Empty{})
+
+	st, ok := status.FromError(err)
+	if !ok {
+		st = status.New(codes.Unknown, err.Error())
+	}
+
+	if st.Code() != codes.OK {
+		t.Fatalf("GetType returned error: %s", err)
+	}
+
 }

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	// "sync"
 
 	"github.com/shawnlower/go-ltp/api"
 	"github.com/shawnlower/go-ltp/api/proto"
@@ -23,6 +22,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/reflection"
 )
@@ -31,11 +31,15 @@ var (
 	store *graph.Handle
 )
 
+// Return a version string to the user
 func (s *Server) GetVersion(ctx context.Context, in *proto.Empty) (*proto.VersionResponse, error) {
 	log.Debug(fmt.Sprintf("GetVersion called. ctx: %#v\n", ctx))
-	return &proto.VersionResponse{VersionString: "LTP Server version 0.0.0"}, nil
+
+	err := status.Error(codes.OK, "OK")
+	return &proto.VersionResponse{VersionString: "LTP Server version 0.0.0"}, err
 }
 
+// Provide some diagnostic information (items stored, etc)
 func (s *Server) GetServerInfo(ctx context.Context, in *proto.Empty) (*proto.ServerInfoResponse, error) {
 	log.Debug(fmt.Sprintf("GetServerInfo called. ctx: %#v\n", ctx))
 
@@ -44,7 +48,8 @@ func (s *Server) GetServerInfo(ctx context.Context, in *proto.Empty) (*proto.Ser
 		"Quads Stored": fmt.Sprintf("%d", store.QuadStore.Size()),
 	}
 
-	return &proto.ServerInfoResponse{InfoItems: info}, nil
+	err := status.Error(codes.OK, "OK")
+	return &proto.ServerInfoResponse{InfoItems: info}, err
 }
 
 // Pretty-print the metadata from a request
@@ -63,27 +68,28 @@ func PprintMeta(md metadata.MD) {
 	log.Debug("context: ", line)
 }
 
-func (s *Server) GetItemType(ctx context.Context, req *proto.GetItemTypeRequest) (*proto.GetItemTypeResponse, *Error) {
+// Return the Type objects for a given item
+func (s *Server) GetType(ctx context.Context, req *proto.GetTypeRequest) (*proto.GetTypeResponse, error) {
 
 	iri := req.IRI
 
 	testIRI := "http://ltp.shawnlower.net/_test"
 	if iri == testIRI {
-		t := &proto.ItemType{
+		t := &proto.Type{
 			IRI: testIRI,
-			Label: "This is a fake type",
+			Label: "This is a built-in test item type",
 			Parents: nil,
 			Children: nil,
 		}
 
-		resp := &proto.GetItemTypeResponse{ItemType: t}
+		resp := &proto.GetTypeResponse{Type: t}
 
-		return resp, &Error{codes.OK, "ltpd: OK"}
+		return resp, status.Error(codes.OK, "OK")
 	} else if iri == "http://ltp.shawnlower.net/_missing" {
-		return nil, &Error{codes.NotFound, "Item not found"}
+		return nil, status.Errorf(codes.NotFound, "Type not found: %s", iri)
 	}
 
-	return nil, &Error{codes.Unimplemented, "Unimplemented."}
+	return nil, status.Error(codes.Unimplemented, "Unimplemented")
 }
 
 func (s *Server) GetItem(ctx context.Context, req *proto.GetItemRequest) (*proto.GetItemResponse, error) {
@@ -128,13 +134,13 @@ func (s *Server) CreateItem(ctx context.Context, req *proto.CreateItemRequest) (
 
 	item := &proto.Item{
 		IRI:        "http://shawnlower.net/i/" + uuid.String(),
-		ItemTypes:  req.ItemTypes,
+		Types:  req.Types,
 		Statements: req.Statements,
 	}
 
 	log.Debugf("api.Item: [%s]", item)
 
-	for _, itemType := range item.ItemTypes {
+	for _, itemType := range item.Types {
 		// q := quad.Make(item.IRI, "rdf:type", itemType, nil)
 		q := quad.Make(
 			quad.String(item.IRI),
@@ -163,25 +169,15 @@ func (s *Server) CreateItem(ctx context.Context, req *proto.CreateItemRequest) (
 
 type Server struct{}
 
-func InitServer() error {
-
+func InitStore(storeDBPath string) error {
 	var err error
 
-	storeName := viper.GetString("store.driver")
-	storeDBPath := viper.GetString("store.dbpath")
-
-	if storeName == "" {
-		storeName = "bolt"
-		storeDBPath = ""
-		log.Warningf("No store defined. Using bolt in a temp dir")
-	}
-
-	if storeName == "memory" {
+	if storeDBPath == ":memory:" {
 		store, err = cayley.NewMemoryGraph()
 		if err != nil {
 			log.Fatal("Failed to create graph: ", err)
 		}
-	} else if storeName == "bolt" {
+	} else if storeDBPath == "" {
 		// Use a temporary dir if none specified
 		if storeDBPath == "" {
 			storeDBPath, err = ioutil.TempDir("", "ltp.bolt")
@@ -205,11 +201,31 @@ func InitServer() error {
 	voc.RegisterPrefix("rdf:", "http://www.w3.org/1999/02/22-rdf-syntax-ns#")
 
 	if err != nil {
-		return fmt.Errorf("Failed to initialize store.")
+		return fmt.Errorf("Failed to initialize store: %v", err)
 	}
 
 	return err
+}
 
+func InitServer() error {
+
+	storeName := viper.GetString("store.driver")
+	storeDBPath := viper.GetString("store.dbpath")
+
+	if storeName == "" {
+		storeName = "bolt"
+		storeDBPath = ""
+		log.Warningf("No store defined. Using bolt in a temp dir")
+	}
+
+	// todo: store.Init(storeDBPath)
+	err := InitStore(storeDBPath)
+
+	if err != nil {
+		return fmt.Errorf("Failed to initialize store.")
+	}
+
+	return nil
 }
 
 func ShutdownServer() error {

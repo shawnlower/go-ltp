@@ -61,13 +61,13 @@ const (
 // Example:
 //   i := &Item{
 //     IRI("") // URL initially undefined
-//     ItemType("schema:Movie") // Type
+//     Type("schema:Movie") // Type
 //   }
 //   i.AddProperty(IRI("schema:name"), String("Transformers"))
 
 type Item struct {
 	IRI        IRI
-	ItemTypes  []IRI
+	Types  []IRI
 	statements []Statement
 }
 
@@ -81,7 +81,7 @@ func NewItem(itemType IRI) (Item, error) {
 
 	item := Item{
 		IRI:       "",
-		ItemTypes: itemTypes,
+		Types: itemTypes,
 	}
 
 	return item, nil
@@ -116,10 +116,10 @@ func (i *Item) AddProperty(p Property, v Value) error {
 // If a single empty-string type exists, it will be replaced with the
 // type specified
 func (i Item) AddType(iri IRI) error {
-	if len(i.ItemTypes) == 1 && i.ItemTypes[0] == "" {
-		i.ItemTypes[0] = iri
+	if len(i.Types) == 1 && i.Types[0] == "" {
+		i.Types[0] = iri
 	}
-	i.ItemTypes = append(i.ItemTypes, iri)
+	i.Types = append(i.Types, iri)
 	return nil
 }
 
@@ -225,12 +225,12 @@ func (s String) Native() interface{} {
 
 func (i Item) ToRequest() (*proto.CreateItemRequest, error) {
 
-	if len(i.ItemTypes) == 0 {
+	if len(i.Types) == 0 {
 		return nil, errors.New("Item type is empty")
 	}
 
 	var itemTypes []string
-	for _, itemType := range i.ItemTypes {
+	for _, itemType := range i.Types {
 		iri, err := NormalizeIri(itemType)
 		if err != nil {
 			return nil, errors.New(
@@ -240,7 +240,7 @@ func (i Item) ToRequest() (*proto.CreateItemRequest, error) {
 	}
 
 	req := &proto.CreateItemRequest{
-		ItemTypes: itemTypes,
+		Types: itemTypes,
 	}
 
 	statements, _ := i.GetStatements()
