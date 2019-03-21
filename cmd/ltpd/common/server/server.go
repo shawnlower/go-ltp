@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	store *graph.Handle
+	store *cayley.Handle
 )
 
 func (s *Server) GetVersion(ctx context.Context, in *proto.Empty) (*proto.VersionResponse, error) {
