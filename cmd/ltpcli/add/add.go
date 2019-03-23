@@ -84,16 +84,21 @@ func NewAddCommand() *cobra.Command {
 
 func addCommand(cmd *cobra.Command, args []string) {
 
+	name, _ := cmd.Flags().GetString("name")
+	typeString, _ := cmd.Flags().GetString("type")
+	typeIRI := api.IRI(typeString)
+
+	doAdd(name, typeIRI, args)
+
+}
+
+func doAdd(name string, typeIRI api.IRI, files []string) {
 	var (
 		input       models.Input
 		parserNames []string
 	)
 
-	name, _ := cmd.Flags().GetString("name")
-	typeString, _ := cmd.Flags().GetString("type")
-	typeIRI := api.IRI(typeString)
-
-	if len(args) == 0 {
+	if len(files) == 0 {
 		// Calling add with no positional arguments is allowed if
 		// we're provided with both:
 		//   -n: A name for the new item; this becomes the primaryLabel
@@ -128,11 +133,11 @@ func addCommand(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	if len(args) > 1 {
+	if len(files) > 1 {
 		log.Fatal("Only a single input supported.")
 	}
 
-	inputString := args[0]
+	inputString := files[0]
 	if inputString == "-" {
 		log.Info("Reading from stdin...")
 		item, _ := api.NewItem(api.IRI(""))
@@ -401,7 +406,7 @@ func remoteWriter(in models.Input, c proto.APIClient, ctx context.Context) error
 	// Determine Item type
 	// itemType := in.Item.GetType()
 	// itemType := "http://schema.org/Thing"
-	if len(in.Item.ItemTypes) == 0 || in.Item.ItemTypes[0] == "" {
+	if len(in.Item.Types) == 0 || in.Item.Types[0] == "" {
 		statements, _ := in.Item.GetStatements()
 		if types, err := api.GetTypeFromStatements(statements); len(types) == 0 || err != nil {
 			log.Warning("Unable to set item type.")

@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	store *graph.Handle
+	store *cayley.Handle
 )
 
 // Return a version string to the user

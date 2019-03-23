@@ -223,10 +223,11 @@ func (s String) Native() interface{} {
 
 //   c.CreateItem(i.ToRequest())
 
+// Return a CreateItemRequest that can be used to instantiate this item
 func (i Item) ToRequest() (*proto.CreateItemRequest, error) {
 
 	if len(i.Types) == 0 {
-		return nil, errors.New("Item type is empty")
+		return nil, errors.New("Can not create ItemRequest from un-typed item.")
 	}
 
 	var itemTypes []string

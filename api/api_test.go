@@ -4,8 +4,8 @@ import (
 	"testing"
 )
 
-// Test the NormalizeUri() function
-func TestNormalizeUri(t *testing.T) {
+// Test the NormalizeIri() function
+func TestNormalizeIri(t *testing.T) {
 	validUris := []string{
 		"http://golang.org/",
 		"https://golang.org/foo#abc",
@@ -27,7 +27,7 @@ func TestNormalizeUri(t *testing.T) {
 
 	// Test valid URIs
 	for _, s := range validUris {
-		u, err := NormalizeUri(s)
+		u, err := NormalizeIri(IRI(s))
 		if err != nil {
 			t.Fatalf("Failed with valid URI: `%s'. (got url=`%s', err=`%s'.\n",
 				s, u, err)
@@ -36,7 +36,7 @@ func TestNormalizeUri(t *testing.T) {
 
 	// Test invalid URIs
 	for _, s := range invalidUris {
-		u, err := NormalizeUri(s)
+		u, err := NormalizeIri(IRI(s))
 		if err == nil {
 			t.Fatalf("Failed to fail on invalid URI: `%s' got `%s'.", s, u)
 		}
@@ -44,7 +44,7 @@ func TestNormalizeUri(t *testing.T) {
 
 	// Test valid CURIEs
 	for _, s := range cURIEs {
-		u, err := NormalizeUri(s)
+		u, err := NormalizeIri(IRI(s))
 		if err != nil {
 			t.Fatalf("Failed on valid CURIE: `%s' (got url=`%s', err=`%s'.\n",
 				s, u, err)
@@ -52,13 +52,16 @@ func TestNormalizeUri(t *testing.T) {
 	}
 }
 
-func TestNewItemRequest(t *testing.T) {
-	_, err := NewItemRequest("schema:Book")
+func TestCreateItem(t *testing.T) {
+	i, err := NewItem(IRI("schema:Book"))
 	if err != nil {
 		t.Fatal(err)
 	}
+	i.ToRequest()
+}
 
-	_, err = NewItemRequest("")
+func TestEmptyNewItem(t *testing.T) {
+	_, err := NewItem(IRI(""))
 	if err == nil {
 		t.Fatal("Empty NewItemRequest should fail.")
 	}
