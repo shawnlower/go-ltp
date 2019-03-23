@@ -1,4 +1,4 @@
-COMMANDS=ltpcli ltpd
+COMMANDS=ltpcli ltpd grpc_gw
 BINARIES=$(addprefix bin/,$(COMMANDS))
 
 src = $(wildcard api/proto/*.proto)
@@ -14,7 +14,9 @@ install:
 
 proto: $(obj)
 	@echo "Rebuilding protobuf stubs"
-	@protoc $< --go_out=plugins=grpc:.
+	@protoc $< -I. -I$$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
+	    --grpc-gateway_out=logtostderr=true:. \
+	    --go_out=plugins=grpc:.
 
 test:
 	go test
@@ -31,3 +33,5 @@ bin/%: cmd/%
 ltpd: bin/ltpd
 
 ltpcli: bin/ltpcli
+
+grpc_gw: bin/grpc_gw

@@ -6,6 +6,7 @@ syntax = "proto3";
 package proto;
 
 import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
 
 message Empty {}
 
@@ -101,8 +102,28 @@ message ServerInfoResponse {
 }
 
 service API {
-    rpc CreateItem(CreateItemRequest) returns (CreateItemResponse);
-    rpc GetItem(GetItemRequest) returns (GetItemResponse);
-    rpc GetVersion(Empty) returns (VersionResponse);
-    rpc GetServerInfo(Empty) returns (ServerInfoResponse);
+    rpc CreateItem(CreateItemRequest) returns (CreateItemResponse) {
+        option (google.api.http) = {
+            post: "/v1/api/CreateItem"
+            body: "*"
+        };
+    }
+    rpc GetItem(GetItemRequest) returns (GetItemResponse) {
+        option (google.api.http) = {
+            post: "/v1/api/GetItem"
+            body: "*"
+        };
+    }
+    rpc GetVersion(Empty) returns (VersionResponse) {
+        option (google.api.http) = {
+            get: "/v1/api/GetVersion"
+        };
+    }
+    rpc GetServerInfo(Empty) returns (ServerInfoResponse) {
+        option (google.api.http) = {
+            post: "/v1/api/GetServerInfo"
+            body: "*"
+        };
+    }
 }
+
