@@ -1,26 +1,24 @@
 FROM golang:1.12-alpine
 
 # Install tools required for project
-RUN apk add --no-cache git
-
-RUN apk add --no-cache bash
+RUN apk add --no-cache bash git make protobuf
 
 ADD . /go
 
+RUN make
+
+FROM golang:1.12-alpine
+
+RUN apk add --no-cache bash libc6-compat
+
 RUN mkdir /app
 
-WORKDIR /go/cmd/ltpd
-RUN go build -v -o /app/bin/ltpd
-
-WORKDIR /go/cmd/ltpcli
-RUN go build -v -o /app/bin/ltpcli
-
-RUN rm -rf /go
-
-WORKDIR /app
+LABEL maintainer="Shawn Lower <shawn@shawnlower.com>"
 
 ENTRYPOINT ["sh", "-c"]
 
-CMD ["/app/bin/ltpd --auth-method=insecure --debug"]
+COPY --from=0 /go/bin /app
+
+CMD ["/app/ltpd --auth-method=insecure --debug"]
 
 EXPOSE 17900

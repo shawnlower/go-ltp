@@ -5,7 +5,7 @@ syntax = "proto3";
 
 package proto;
 
-import "google/protobuf/timestamp.proto";
+import "ptypes/timestamp/timestamp.proto";
 import "google/api/annotations.proto";
 
 message Empty {}
