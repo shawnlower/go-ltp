@@ -17,6 +17,3 @@ outfile.*
 *.data
 
 bin
-
-# Autogenerate via proto files
-api/proto/*.go

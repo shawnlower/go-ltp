@@ -16,11 +16,11 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/remyoudompheng/bigfft v0.0.0-20190321074620-2f0d2b0e0001 // indirect
-	github.com/shawnlower/go-ltp/api/proto v0.0.0-20190324013737-812906d181c0
 	github.com/sirupsen/logrus v1.4.0
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/viper v1.3.2
 	github.com/tylertreat/BoomFilters v0.0.0-20181028192813-611b3dbe80e8 // indirect
 	golang.org/x/net v0.0.0-20190322120337-addf6b3196f6
+	google.golang.org/genproto v0.0.0-20180817151627-c66870c02cf8
 	google.golang.org/grpc v1.19.1
 )
