@@ -1,17 +1,18 @@
 FROM golang:1.12-alpine
 
 # Install tools required for project
-RUN apk add --no-cache bash git make protobuf
+RUN apk add --no-cache git make protobuf
 
-ADD . /go/src/github.com/shawnlower/go-ltp
+COPY . build
 
-WORKDIR /go/src/github.com/shawnlower/go-ltp
+WORKDIR ./build
 
 RUN make
 
 FROM golang:1.12-alpine
 
-RUN apk add --no-cache bash libc6-compat
+#RUN apk add --no-cache bash libc6-compat
+RUN apk add --no-cache bash
 
 RUN mkdir /app
 
