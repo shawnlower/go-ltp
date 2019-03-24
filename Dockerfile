@@ -3,7 +3,9 @@ FROM golang:1.12-alpine
 # Install tools required for project
 RUN apk add --no-cache bash git make protobuf
 
-ADD . /go
+ADD . /go/src/github.com/shawnlower/go-ltp
+
+WORKDIR /go/src/github.com/shawnlower/go-ltp
 
 RUN make
 

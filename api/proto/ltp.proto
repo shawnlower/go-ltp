@@ -5,6 +5,8 @@ syntax = "proto3";
 
 package proto;
 
+option go_package = "github.com/shawnlower/go-ltp";
+
 import "ptypes/timestamp/timestamp.proto";
 import "google/api/annotations.proto";
 

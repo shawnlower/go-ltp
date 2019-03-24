@@ -1,6 +1,9 @@
 COMMANDS=ltpcli ltpd grpc_gw
 BINARIES=$(addprefix bin/,$(COMMANDS))
 
+# If a GOPATH is defined, use that (e.g. for a Docker build)
+# otherwise, build in cwd, under a temporary build/ directory
+
 src = $(wildcard api/proto/*.proto)
 obj = $(src:.go=.pb.go)
 
@@ -35,11 +38,10 @@ clean:
 binaries: $(BINARIES)
 
 bin/%: cmd/%
-	echo "Building $@"
 	@export CGO_ENABLED=0
 	@export GOOS=linux
-
-	go build -o ./$@ ./$<
+	echo "Building $@"
+	go build -i -o ./$@ ./$<
 
 ltpd: bin/ltpd
 
