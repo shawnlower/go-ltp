@@ -27,7 +27,7 @@ import (
 	"sync"
 
 	"github.com/shawnlower/go-ltp/api"
-	"github.com/shawnlower/go-ltp/api/proto"
+	go_ltp "github.com/shawnlower/go-ltp/api/proto"
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/common"
 	"github.com/shawnlower/go-ltp/cmd/ltpcli/common/models"
 	"github.com/shawnlower/go-ltp/parsers"
@@ -381,7 +381,7 @@ func handleInput(input models.Input) error {
 // 	return jsonDoc, nil
 // }
 
-func remoteWriter(in models.Input, c proto.APIClient, ctx context.Context) error {
+func remoteWriter(in models.Input, c go_ltp.APIClient, ctx context.Context) error {
 
 	for _, parser := range in.AsyncParsers {
 		statements := parser.GetStatements()

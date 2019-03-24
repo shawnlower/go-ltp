@@ -8,7 +8,7 @@ import (
 	"net"
 
 	"github.com/shawnlower/go-ltp/api"
-	"github.com/shawnlower/go-ltp/api/proto"
+	go_ltp "github.com/shawnlower/go-ltp/api/proto"
 
 	"github.com/cayleygraph/cayley"
 	"github.com/cayleygraph/cayley/graph"
@@ -32,15 +32,15 @@ var (
 )
 
 // Return a version string to the user
-func (s *Server) GetVersion(ctx context.Context, in *proto.Empty) (*proto.VersionResponse, error) {
+func (s *Server) GetVersion(ctx context.Context, in *go_ltp.Empty) (*go_ltp.VersionResponse, error) {
 	log.Debug(fmt.Sprintf("GetVersion called. ctx: %#v\n", ctx))
 
 	err := status.Error(codes.OK, "OK")
-	return &proto.VersionResponse{VersionString: "LTP Server version 0.0.0"}, err
+	return &go_ltp.VersionResponse{VersionString: "LTP Server version 0.0.0"}, err
 }
 
 // Provide some diagnostic information (items stored, etc)
-func (s *Server) GetServerInfo(ctx context.Context, in *proto.Empty) (*proto.ServerInfoResponse, error) {
+func (s *Server) GetServerInfo(ctx context.Context, in *go_ltp.Empty) (*go_ltp.ServerInfoResponse, error) {
 	log.Debug(fmt.Sprintf("GetServerInfo called. ctx: %#v\n", ctx))
 
 	info := map[string]string{
@@ -49,7 +49,7 @@ func (s *Server) GetServerInfo(ctx context.Context, in *proto.Empty) (*proto.Ser
 	}
 
 	err := status.Error(codes.OK, "OK")
-	return &proto.ServerInfoResponse{InfoItems: info}, err
+	return &go_ltp.ServerInfoResponse{InfoItems: info}, err
 }
 
 // Pretty-print the metadata from a request
@@ -69,20 +69,20 @@ func PprintMeta(md metadata.MD) {
 }
 
 // Return the Type objects for a given item
-func (s *Server) GetType(ctx context.Context, req *proto.GetTypeRequest) (*proto.GetTypeResponse, error) {
+func (s *Server) GetType(ctx context.Context, req *go_ltp.GetTypeRequest) (*go_ltp.GetTypeResponse, error) {
 
 	iri := req.IRI
 
 	testIRI := "http://ltp.shawnlower.net/_test"
 	if iri == testIRI {
-		t := &proto.Type{
+		t := &go_ltp.Type{
 			IRI: testIRI,
 			Label: "This is a built-in test item type",
 			Parents: nil,
 			Children: nil,
 		}
 
-		resp := &proto.GetTypeResponse{Type: t}
+		resp := &go_ltp.GetTypeResponse{Type: t}
 
 		return resp, status.Error(codes.OK, "OK")
 	} else if iri == "http://ltp.shawnlower.net/_missing" {
@@ -92,12 +92,12 @@ func (s *Server) GetType(ctx context.Context, req *proto.GetTypeRequest) (*proto
 	return nil, status.Error(codes.Unimplemented, "Unimplemented")
 }
 
-func (s *Server) GetItem(ctx context.Context, req *proto.GetItemRequest) (*proto.GetItemResponse, error) {
+func (s *Server) GetItem(ctx context.Context, req *go_ltp.GetItemRequest) (*go_ltp.GetItemResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 	PprintMeta(md)
 	log.Debug("GetItemRequest for IRI: ", req.IRI)
 
-	item := &proto.Item{
+	item := &go_ltp.Item{
 		IRI: req.IRI,
 	}
 
@@ -108,7 +108,7 @@ func (s *Server) GetItem(ctx context.Context, req *proto.GetItemRequest) (*proto
 		p.Iterate(nil).EachValue(nil, func(value quad.Value) {
 			// nativeValue := quad.NativeOf(value)
 			// log.Debugf("%s: %s = %s", req.IRI, pred, nativeValue)
-			item.Statements = append(item.Statements, &proto.Statement{
+			item.Statements = append(item.Statements, &go_ltp.Statement{
 				Subject:   item.IRI,
 				Predicate: pred.String(),
 				Object:    value.String(),
@@ -116,14 +116,14 @@ func (s *Server) GetItem(ctx context.Context, req *proto.GetItemRequest) (*proto
 		})
 	})
 
-	resp := &proto.GetItemResponse{
+	resp := &go_ltp.GetItemResponse{
 		Item: item,
 	}
 
 	return resp, err
 }
 
-func (s *Server) CreateItem(ctx context.Context, req *proto.CreateItemRequest) (*proto.CreateItemResponse, error) {
+func (s *Server) CreateItem(ctx context.Context, req *go_ltp.CreateItemRequest) (*go_ltp.CreateItemResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
 	PprintMeta(md)
 
@@ -132,7 +132,7 @@ func (s *Server) CreateItem(ctx context.Context, req *proto.CreateItemRequest) (
 		return nil, api.ErrInvalidItem
 	}
 
-	item := &proto.Item{
+	item := &go_ltp.Item{
 		IRI:        "http://shawnlower.net/i/" + uuid.String(),
 		Types:  req.Types,
 		Statements: req.Statements,
@@ -161,7 +161,7 @@ func (s *Server) CreateItem(ctx context.Context, req *proto.CreateItemRequest) (
 		store.AddQuad(q)
 	}
 
-	resp := &proto.CreateItemResponse{
+	resp := &go_ltp.CreateItemResponse{
 		Item: item,
 	}
 	return resp, nil
@@ -253,7 +253,7 @@ func NewInsecureGrpcServer(host string, port string) (*grpc.Server, chan error) 
 	// Get credentials
 
 	server := grpc.NewServer()
-	proto.RegisterAPIServer(server, &Server{})
+	go_ltp.RegisterAPIServer(server, &Server{})
 
 	// Register reflection service on gRPC server.
 	reflection.Register(server)
@@ -304,7 +304,7 @@ func NewMutualTLSGrpcServer(host string, port string, certFile string, keyFile s
 	})
 
 	server := grpc.NewServer(grpc.Creds(creds))
-	proto.RegisterAPIServer(server, &Server{})
+	go_ltp.RegisterAPIServer(server, &Server{})
 
 	// Register reflection service on gRPC server.
 	reflection.Register(server)

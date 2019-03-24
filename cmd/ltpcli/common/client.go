@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/shawnlower/go-ltp/api"
-	"github.com/shawnlower/go-ltp/api/proto"
+	go_ltp "github.com/shawnlower/go-ltp/api/proto"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -41,7 +41,7 @@ type ClientConfig struct {
 	CACert     string
 }
 
-func GetClient() (proto.APIClient, context.Context, error) {
+func GetClient() (go_ltp.APIClient, context.Context, error) {
 	config := &ClientConfig{
 		ServerUrl:  strings.ToLower(viper.GetString("remote.url")),
 		ClientCert: viper.GetString("remote.cert"),
@@ -68,7 +68,7 @@ func GetClient() (proto.APIClient, context.Context, error) {
 	}
 }
 
-func getInsecureGrpcClient(cfg *ClientConfig) (proto.APIClient, context.Context, error) {
+func getInsecureGrpcClient(cfg *ClientConfig) (go_ltp.APIClient, context.Context, error) {
 
 	var (
 		host string
@@ -94,13 +94,13 @@ func getInsecureGrpcClient(cfg *ClientConfig) (proto.APIClient, context.Context,
 		log.Fatalf("did not connect: %v", err)
 	}
 
-	c := proto.NewAPIClient(conn)
+	c := go_ltp.NewAPIClient(conn)
 	ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
 
 	return c, ctx, nil
 }
 
-func getMutualTLSGrpcClient(cfg *ClientConfig) (proto.APIClient, context.Context, error) {
+func getMutualTLSGrpcClient(cfg *ClientConfig) (go_ltp.APIClient, context.Context, error) {
 
 	var (
 		host string
@@ -147,7 +147,7 @@ func getMutualTLSGrpcClient(cfg *ClientConfig) (proto.APIClient, context.Context
 		log.Fatalf("did not connect: %v", err)
 	}
 
-	c := proto.NewAPIClient(conn)
+	c := go_ltp.NewAPIClient(conn)
 
 	ctx, _ := context.WithTimeout(context.Background(), 3*time.Second)
 

@@ -23,7 +23,7 @@ import (
 	"net/url"
 	"regexp"
 
-	"github.com/shawnlower/go-ltp/api/proto"
+	go_ltp "github.com/shawnlower/go-ltp/api/proto"
 )
 
 const (
@@ -224,7 +224,7 @@ func (s String) Native() interface{} {
 //   c.CreateItem(i.ToRequest())
 
 // Return a CreateItemRequest that can be used to instantiate this item
-func (i Item) ToRequest() (*proto.CreateItemRequest, error) {
+func (i Item) ToRequest() (*go_ltp.CreateItemRequest, error) {
 
 	if len(i.Types) == 0 {
 		return nil, errors.New("Can not create ItemRequest from un-typed item.")
@@ -240,13 +240,13 @@ func (i Item) ToRequest() (*proto.CreateItemRequest, error) {
 		itemTypes = append(itemTypes, iri.String())
 	}
 
-	req := &proto.CreateItemRequest{
+	req := &go_ltp.CreateItemRequest{
 		Types: itemTypes,
 	}
 
 	statements, _ := i.GetStatements()
 	for _, statement := range statements {
-		statementPb := &proto.Statement{
+		statementPb := &go_ltp.Statement{
 			Subject:   statement.Subject.String(),
 			Predicate: statement.Predicate.String(),
 			Object:    statement.Object.String(),

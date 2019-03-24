@@ -4,6 +4,8 @@ BINARIES=$(addprefix bin/,$(COMMANDS))
 # If a GOPATH is defined, use that (e.g. for a Docker build)
 # otherwise, build in cwd, under a temporary build/ directory
 
+
+
 src = $(wildcard api/proto/*.proto)
 obj = $(src:.go=.pb.go)
 
@@ -15,19 +17,14 @@ build:
 install:
 	go install
 
+pb_include=-I $(shell go list -f '{{ .Dir }}' -m github.com/golang/protobuf)
+pb_include+=-I $(shell go list -f '{{ .Dir }}' -m github.com/grpc-ecosystem/grpc-gateway)/third_party/googleapis
 proto: $(obj)
 	@echo "Rebuilding protobuf stubs"
-	@go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
-	@go get github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
-	@go get github.com/golang/protobuf/protoc-gen-go
-	@go get github.com/gogo/protobuf/protoc-gen-gofast
 	@protoc $< -I.\
-	    -I$$GOPATH/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
-	    -I$$GOPATH/src/github.com/golang/protobuf \
-	    -I$$GOPATH/src/github.com/gogo/protobuf/protobuf \
-	    -I$$GOPATH/src/github.com/gogo/protobuf/protobuf/ \
-	    --grpc-gateway_out=logtostderr=true:. \
-	    --go_out=plugins=grpc:.
+	    $(pb_include) \
+	    --grpc-gateway_out=logtostderr=true,paths=source_relative:. \
+	    --go_out=paths=source_relative,plugins=grpc:.
 
 test:
 	go test
