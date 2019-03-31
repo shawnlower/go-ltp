@@ -23,6 +23,7 @@ proto: $(obj)
 	@protoc $< -I.\
 	    $(pb_include) \
 	    --grpc-gateway_out=logtostderr=true,paths=source_relative:. \
+	    --swagger_out=. \
 	    --go_out=paths=source_relative,plugins=grpc:.
 
 test:
