@@ -274,7 +274,7 @@ func handleInput(input models.Input) error {
 		datafile = fmt.Sprintf("output.data")
 		metadatafile = fmt.Sprintf("output.json")
 	}
-	// fileWriter(outReader, datafile)
+	fileWriter(outReader, datafile)
 	_ = bytes.NewBuffer
 	_ = outReader
 	_ = metadatafile

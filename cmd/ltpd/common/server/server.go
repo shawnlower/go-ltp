@@ -173,19 +173,19 @@ func InitStore(storeDBPath string) error {
 	var err error
 
 	if storeDBPath == ":memory:" {
+        log.Warning(fmt.Sprintf("Using in-memory store. Data will NOT be persisted", storeDBPath))
 		store, err = cayley.NewMemoryGraph()
 		if err != nil {
 			log.Fatal("Failed to create graph: ", err)
 		}
 	} else if storeDBPath == "" {
 		// Use a temporary dir if none specified
-		if storeDBPath == "" {
-			storeDBPath, err = ioutil.TempDir("", "ltp.bolt")
-			if err != nil {
-				log.Fatal("Unable to create temp DB: ", err)
-			}
-			log.Warning(fmt.Sprintf("Using tempdir for DB: `%s'", storeDBPath))
-		}
+		storeDBPath, err = ioutil.TempDir("", "ltp.bolt")
+        log.Warning(fmt.Sprintf("Using tempdir for DB: `%s'", storeDBPath))
+		if err != nil {
+			log.Fatal("Unable to create temp DB: ", err)
+        }
+	} else {
 		err = graph.InitQuadStore("bolt", storeDBPath, nil)
 		if err != nil {
 			log.Fatal("Failed to create graph: ", err)
@@ -194,7 +194,6 @@ func InitStore(storeDBPath string) error {
 		if err != nil {
 			log.Fatal("Failed to open DB: ", err)
 		}
-
 	}
 
 	voc.RegisterPrefix("schema:", "https://schema.org/")
