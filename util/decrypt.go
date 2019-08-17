@@ -12,6 +12,7 @@ import (
 func main() {
 	var filename string
 	var message []byte
+	var hexKey string
 
 	if len(os.Args) != 3 {
 		fmt.Println("Usage: $0 key filename")
@@ -29,7 +30,13 @@ func main() {
 	message = make([]byte, buf.Len())
 	copy(message, buf.Bytes())
 
-	key, err := hex.DecodeString(os.Args[1])
+	if os.Args[1][:2] == "0x" {
+		hexKey = os.Args[1][2:]
+	} else {
+		hexKey = os.Args[1]
+	}
+
+	key, err := hex.DecodeString(hexKey)
 	if err != nil {
 		fmt.Println("Invalid hex digits: ", key)
 		os.Exit(1)
