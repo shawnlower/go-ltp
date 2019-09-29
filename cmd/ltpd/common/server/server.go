@@ -186,9 +186,10 @@ func InitStore(storeDBPath string) error {
 			log.Fatal("Unable to create temp DB: ", err)
         }
 	} else {
-		err = graph.InitQuadStore("bolt", storeDBPath, nil)
-		if err != nil {
-			log.Fatal("Failed to create graph: ", err)
+		if err = graph.InitQuadStore("bolt", storeDBPath, nil); err == graph.ErrDatabaseExists {
+			log.Warning("database already initialized, skipping init")
+		} else if err != nil {
+			log.Fatal(fmt.Sprintf("Failed to create graph: %v", err))
 		}
 		store, err = cayley.NewGraph("bolt", storeDBPath, nil)
 		if err != nil {
